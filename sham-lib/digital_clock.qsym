@@ -1,0 +1,10 @@
+ÿØÿÛ«symbol
+  «type: Ø(.DLL)»
+  «shorted pins: false»
+  «rect (-700,500) (700,-500) 0 0 0 0x4000000 0x4000000 -1 1 -1»
+  «text (0,350) 1 12 0 0x1000000 -1 -1 "DCLK1"»
+  «text (0,250) 0.681 13 0 0x1000000 -1 -1 "digital_clock"»
+  «text (0,-150) 0.681 13 0 0x1000000 -1 -1 "double FREQ=fs"»
+  «text (0,-300) 0.681 13 0 0x1000000 -1 -1 "double TTOL=ttol"»
+  «pin (700,0) (-50,0) 1 11 146 0x0 -1 "clk"»
+»
