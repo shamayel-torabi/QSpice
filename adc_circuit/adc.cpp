@@ -1,4 +1,4 @@
-// Automatically generated C++ file on Sat Sep 13 09:30:36 2025
+// Automatically generated C++ file on Sat Sep 13 10:02:38 2025
 //
 // To build with Digital Mars C++ Compiler:
 //
@@ -42,9 +42,10 @@ struct sADC
 
 extern "C" __declspec(dllexport) void adc(struct sADC **opaque, double t, union uData *data)
 {
-   double          In  = data[0].d ; // input
-   double          clk = data[1].d ; // input
-   unsigned short &Out = data[2].us; // output
+   double          In   = data[0].d ; // input
+   double          clk  = data[1].d ; // input
+   const double    Vref = data[2].d ; // input parameter
+   unsigned short &Out  = data[3].us; // output
 
    if(!*opaque)
    {
@@ -53,19 +54,18 @@ extern "C" __declspec(dllexport) void adc(struct sADC **opaque, double t, union 
    }
    struct sADC *inst = *opaque;
 
-   if(In > 3.2)
-      In = 3.2;
+   if(In > Vref)
+      In = Vref;
    if(In < 0.0)
       In = 0.0;
 
    if(clk > 0.9 && inst->last_clk < 0.1)
    {
-      inst->adc_value = unsigned short(In * 4096.0 / 3.2);
+      inst->adc_value = unsigned short(In * 4096.0 / Vref);
    }
 
 
    inst->last_clk = clk;
-
    Out = inst->adc_value;
 }
 
