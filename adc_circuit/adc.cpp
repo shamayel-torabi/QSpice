@@ -1,6 +1,6 @@
-// Automatically generated C++ file on Sat Sep 13 10:02:38 2025
+// Automatically generated C++ file on Sat Sep 13 17:18:28 2025
 //
-// To build with Digital Mars C++ Compiler:
+// To build with Digital Mars C++ Compiler: 
 //
 //    dmc -mn -WD adc.cpp kernel32.lib
 
@@ -42,10 +42,10 @@ struct sADC
 
 extern "C" __declspec(dllexport) void adc(struct sADC **opaque, double t, union uData *data)
 {
-   double          In   = data[0].d ; // input
-   double          clk  = data[1].d ; // input
-   const double    Vref = data[2].d ; // input parameter
-   unsigned short &Out  = data[3].us; // output
+   double  In   = data[0].d; // input
+   double  clk  = data[1].d; // input
+   const double  Vref = data[2].d; // input parameter
+   double &Out  = data[3].d; // output
 
    if(!*opaque)
    {
@@ -54,14 +54,16 @@ extern "C" __declspec(dllexport) void adc(struct sADC **opaque, double t, union 
    }
    struct sADC *inst = *opaque;
 
-   if(In > Vref)
-      In = Vref;
+// Implement module evaluation code here:
+
+   if(In > 3.2)
+      In = 3.2;
    if(In < 0.0)
       In = 0.0;
 
    if(clk > 0.9 && inst->last_clk < 0.1)
    {
-      inst->adc_value = unsigned short(In * 4096.0 / Vref);
+      inst->adc_value = unsigned short(In * 4096.0 / 3.2);
    }
 
 
