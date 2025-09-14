@@ -56,7 +56,8 @@ struct sDPWM
 extern "C" __declspec(dllexport) void dpwm(struct sDPWM **opaque, double t, union uData *data)
 {
    const double mcu_clk = 100E6;
-   const double peak    = 10000;
+   const double peak    = 200;
+   const double vm      = 100;
 
    double  vin = data[0].d; // input
    double &pwm = data[1].d; // output
@@ -74,11 +75,11 @@ extern "C" __declspec(dllexport) void dpwm(struct sDPWM **opaque, double t, unio
       inst->xpeak= peak;
       inst->xcmp = 0;
 
-      inst->cmpTrg = inst->xpeak/mcu_clk;
+      inst->cmpTrg = inst->xpeak/mcu_clk;;
       inst->endTrg = inst->xpeak/mcu_clk;
 
       inst->maxstep = 1e-9;
-
+      inst->pwm = 0;
    }
    struct sDPWM *inst = *opaque;
 
@@ -87,12 +88,15 @@ extern "C" __declspec(dllexport) void dpwm(struct sDPWM **opaque, double t, unio
    if((inst->t_prev <= inst->endTrg)&&(t >= inst->endTrg)){
       inst->xcntr++;
       inst->xpeak= peak;
-      inst->xcmp = round(5000 * abs(vin));
+      inst->xcmp = round(vm * abs(vin));
+
+      if(inst->xcmp > inst->xpeak)
+         inst->xcmp = inst->xpeak;
 
       inst->cmpTrg = inst->endTrg + inst->xcmp/mcu_clk;
       inst->endTrg = inst->endTrg + inst->xpeak/mcu_clk;
 
-      inst->maxstep = peak/mcu_clk;
+      inst->maxstep = inst->xcmp/mcu_clk;
       inst->pwm = 15.0;
    }
 
@@ -103,17 +107,18 @@ extern "C" __declspec(dllexport) void dpwm(struct sDPWM **opaque, double t, unio
 
    pwm = inst->pwm;
    cmp = inst->xcmp;
+
    inst->t_prev = t;
 }
 
-extern "C" __declspec(dllexport) double MaxExtStepSize(struct sDPWM *inst, double t)
-{
-   return inst->maxstep;
-}
+//extern "C" __declspec(dllexport) double MaxExtStepSize(struct sDPWM *inst, double t)
+//{
+//   return inst->maxstep;
+//}
 
 extern "C" __declspec(dllexport) void Trunc(struct sDPWM *inst, double t, union uData *data, double *timestep)
 { // limit the timestep to a tolerance if the circuit causes a change in struct sDPWM
-   const double ttol = 1e-9; // 1ns default tolerance
+   const double ttol = 1e-12; // 1ns default tolerance
    if(*timestep > ttol)
    {
       struct sDPWM tmp = *inst;
