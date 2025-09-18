@@ -59,7 +59,7 @@ extern "C" __declspec(dllexport) void digital_clock(struct sDIGITAL_CLOCK **opaq
       struct sDIGITAL_CLOCK *inst = *opaque;
 
       inst->startTrg = peak / mcu_clk;
-      inst->maxstep = 1e-12;
+      inst->maxstep = 1e-9;
       inst->ttol = TTOL;
    }
    struct sDIGITAL_CLOCK *inst = *opaque;
@@ -73,7 +73,7 @@ extern "C" __declspec(dllexport) void digital_clock(struct sDIGITAL_CLOCK **opaq
       inst->maxstep = peak/mcu_clk;
 
       cnt++;
-      if(cnt > peak)
+      if(cnt >= peak)
          cnt = 0;
    }
 
