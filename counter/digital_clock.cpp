@@ -1,10 +1,11 @@
-// Automatically generated C++ file on Sun Sep 14 17:03:52 2025
+// Automatically generated C++ file on Thu Sep 18 18:38:09 2025
 //
 // To build with Digital Mars C++ Compiler:
 //
 //    dmc -mn -WD digital_clock.cpp kernel32.lib
 
 #include <malloc.h>
+#include <math.h>
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
 
@@ -30,53 +31,77 @@ union uData
 int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { return 1; }
 
 // #undef pin names lest they collide with names in any header file(s) you might include.
-#undef clk
-#undef cnt
+#undef pwm
+#undef Vin
 
 struct sDIGITAL_CLOCK
 {
   // declare the structure here
   long long int xcntr;
   double maxstep;
+
   double ttol;
+  double mcu_clk;
+  double per;
+
   double t_prev;
   double startTrg;
+  unsigned short counter;
+  //double pwm;
 };
 
 extern "C" __declspec(dllexport) void digital_clock(struct sDIGITAL_CLOCK **opaque, double t, union uData *data)
 {
-   const double    peak = 170;
-   double          mcu_clk = data[0].d ; // input parameter
-   double          TTOL    = data[1].d ; // input parameter
-   double         &clk     = data[2].d ; // output
-   unsigned short &cnt     = data[3].us; // output
+   double  Vin  = data[0].d; // input
+   const double  FREQ = data[1].d; // input parameter
+   const double  TTOL = data[2].d; // input parameter
+   const double  PER  = data[3].d; // input parameter
+   double &pwm  = data[4].d; // output
 
-   if(!*opaque)
+if(!*opaque)
    {
       *opaque = (struct sDIGITAL_CLOCK *) malloc(sizeof(struct sDIGITAL_CLOCK));
       bzero(*opaque, sizeof(struct sDIGITAL_CLOCK));
 
       struct sDIGITAL_CLOCK *inst = *opaque;
 
-      inst->startTrg = peak / mcu_clk;
+      inst->startTrg = 0;
       inst->maxstep = 1e-9;
       inst->ttol = TTOL;
+      inst->mcu_clk = FREQ;
+      inst->per = PER;
+      inst->counter = 0;
    }
    struct sDIGITAL_CLOCK *inst = *opaque;
 
 // Implement module evaluation code here:
 
+
    if((inst->t_prev <= inst->startTrg)&&(t >= inst->startTrg)){
-      inst->xcntr++;
+      inst->startTrg += 1.0/inst->mcu_clk;
+      inst->maxstep = 1.0/inst->mcu_clk;
 
-      inst->startTrg += peak/mcu_clk;
-      inst->maxstep = peak/mcu_clk;
+      inst->counter++;
+      if(inst->counter >= inst->per)
+         inst->counter = 0;
 
-      cnt++;
-      if(cnt >= peak)
-         cnt = 0;
+      double Vabs = fabs(Vin);
+
+      if(Vabs > 3.3)
+         Vabs = 3.3;
+
+      if(Vabs < 0.0)
+         Vabs = 0.0;
+
+      unsigned short v = unsigned short (Vabs * inst->per / 3.3);
+
+      if(v > inst->counter)
+         pwm = 15.0;
+      else
+         pwm = 0.0;
    }
 
+   //pwm = inst->pwm;
    inst->t_prev = t;
 }
 
@@ -88,8 +113,6 @@ extern "C" __declspec(dllexport) double MaxExtStepSize(struct sDIGITAL_CLOCK *in
 extern "C" __declspec(dllexport) void Trunc(struct sDIGITAL_CLOCK *inst, double t, union uData *data, double *timestep)
 {
    // limit the timestep to a tolerance if the circuit causes a change in struct sDIGITAL_CLOCK
-   //const double ttol = 1e-9; // 1ns default tolerance
-
    if(*timestep > inst->ttol)
    {
       struct sDIGITAL_CLOCK tmp = *inst;
@@ -97,6 +120,7 @@ extern "C" __declspec(dllexport) void Trunc(struct sDIGITAL_CLOCK *inst, double 
       if(tmp.xcntr != inst->xcntr) // implement a meaningful way to detect if the state has changed
          *timestep = inst->ttol;
    }
+
 }
 
 extern "C" __declspec(dllexport) void Destroy(struct sDIGITAL_CLOCK *inst)
