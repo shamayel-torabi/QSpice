@@ -1,4 +1,4 @@
-// Automatically generated C++ file on Fri Sep 19 18:41:09 2025
+// Automatically generated C++ file on Fri Sep 19 17:57:21 2025
 //
 // To build with Digital Mars C++ Compiler:
 //
@@ -35,7 +35,6 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Iin
 #undef Vout
 #undef duty
-#undef Iref
 
 #define PI(y_prev,x,x_prev,kp,kits) y_prev+kp*(x-x_prev)+kits*x
 
@@ -64,17 +63,16 @@ struct InstanceData
 
 extern "C" __declspec(dllexport) void digital_pwm(struct InstanceData **opaque, double t, union uData *data)
 {
-   double  Vin  = data[ 0].d; // input
-   double  Iin  = data[ 1].d; // input
-   double  Vout = data[ 2].d; // input
-   double  FREQ = data[ 3].d; // input parameter
-   double  TTOL = data[ 4].d; // input parameter
-   double  PER  = data[ 5].d; // input parameter
-   double  Kp   = data[ 6].d; // input parameter
-   double  Ki   = data[ 7].d; // input parameter
-   double &pwm  = data[ 8].d; // output
-   double &duty = data[ 9].d; // output
-   double &Iref = data[10].d; // output
+   double  Vin  = data[0].d; // input
+   double  Iin  = data[1].d; // input
+   double  Vout = data[2].d; // input
+   const double  FREQ = data[3].d; // input parameter
+   const double  TTOL = data[4].d; // input parameter
+   const double  PER  = data[5].d; // input parameter
+   const double  Kp   = data[6].d; // input parameter
+   const double  Ki   = data[7].d; // input parameter
+   double &pwm  = data[8].d; // output
+   double &duty = data[9].d; // output
 
    if(!*opaque)
    {
@@ -103,19 +101,16 @@ extern "C" __declspec(dllexport) void digital_pwm(struct InstanceData **opaque, 
          inst->counter = 0;
 
       inst->verror = 2.0 - Vout;
-      inst->iref = PI(inst->iref, inst->verror, inst->verror_prev, 1.0, 0.001623);
-      //if(inst->iref > 500) inst->iref = 500;
-      //if(inst->iref < 0) inst->iref = 0;
+      inst->iref = PI(inst->iref, inst->verror, inst->verror_prev, 1.39213, 0.1623);
+      if(inst->iref > 500) inst->iref = 500;
+      if(inst->iref < 0) inst->iref = 0;
       inst->verror_prev = inst->verror;
-
-      Iref = inst->iref;
 
       inst->ierror = inst->iref - Iin;
       inst->out = PI(inst->out, inst->ierror, inst->ierror_prev, Kp, Ki);
       if(inst->out > inst->per) inst->out = inst->per;
       if(inst->out < 0) inst->out = 0;
       inst->ierror_prev = inst->ierror;
-
 
       duty = inst->out;
 
