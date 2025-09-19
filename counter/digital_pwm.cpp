@@ -84,15 +84,13 @@ if(!*opaque)
       if(inst->counter >= inst->per)
          inst->counter = 0;
 
-      double Vabs = fabs(Vin);
+      if(Vin > 3.3)
+         Vin = 3.3;
 
-      if(Vabs > 3.3)
-         Vabs = 3.3;
+      if(Vin < 0.0)
+         Vin = 0.0;
 
-      if(Vabs < 0.0)
-         Vabs = 0.0;
-
-      unsigned short v = unsigned short (Vabs * inst->per / 3.3);
+      unsigned short v = unsigned short (Vin * inst->per / 3.3);
 
       if(v > inst->counter)
          pwm = 15.0;
@@ -100,7 +98,6 @@ if(!*opaque)
          pwm = 0.0;
    }
 
-   //pwm = inst->pwm;
    inst->t_prev = t;
 }
 

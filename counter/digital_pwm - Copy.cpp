@@ -1,8 +1,8 @@
-// Automatically generated C++ file on Thu Sep 18 18:38:09 2025
+// Automatically generated C++ file on Thu Sep 18 19:05:00 2025
 //
 // To build with Digital Mars C++ Compiler:
 //
-//    dmc -mn -WD digital_clock.cpp kernel32.lib
+//    dmc -mn -WD digital_pwm.cpp kernel32.lib
 
 #include <malloc.h>
 #include <math.h>
@@ -34,7 +34,7 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef pwm
 #undef Vin
 
-struct sDIGITAL_CLOCK
+struct sDIGITAL_PWM
 {
   // declare the structure here
   long long int xcntr;
@@ -47,23 +47,22 @@ struct sDIGITAL_CLOCK
   double t_prev;
   double startTrg;
   unsigned short counter;
-  //double pwm;
 };
 
-extern "C" __declspec(dllexport) void digital_clock(struct sDIGITAL_CLOCK **opaque, double t, union uData *data)
+extern "C" __declspec(dllexport) void digital_pwm(struct sDIGITAL_PWM **opaque, double t, union uData *data)
 {
    double  Vin  = data[0].d; // input
-   const double  FREQ = data[1].d; // input parameter
-   const double  TTOL = data[2].d; // input parameter
-   const double  PER  = data[3].d; // input parameter
+   double  FREQ = data[1].d; // input parameter
+   double  TTOL = data[2].d; // input parameter
+   double  PER  = data[3].d; // input parameter
    double &pwm  = data[4].d; // output
 
 if(!*opaque)
    {
-      *opaque = (struct sDIGITAL_CLOCK *) malloc(sizeof(struct sDIGITAL_CLOCK));
-      bzero(*opaque, sizeof(struct sDIGITAL_CLOCK));
+      *opaque = (struct sDIGITAL_PWM *) malloc(sizeof(struct sDIGITAL_PWM));
+      bzero(*opaque, sizeof(struct sDIGITAL_PWM));
 
-      struct sDIGITAL_CLOCK *inst = *opaque;
+      struct sDIGITAL_PWM *inst = *opaque;
 
       inst->startTrg = 0;
       inst->maxstep = 1e-9;
@@ -72,7 +71,7 @@ if(!*opaque)
       inst->per = PER;
       inst->counter = 0;
    }
-   struct sDIGITAL_CLOCK *inst = *opaque;
+   struct sDIGITAL_PWM *inst = *opaque;
 
 // Implement module evaluation code here:
 
@@ -105,25 +104,25 @@ if(!*opaque)
    inst->t_prev = t;
 }
 
-extern "C" __declspec(dllexport) double MaxExtStepSize(struct sDIGITAL_CLOCK *inst, double t)
+extern "C" __declspec(dllexport) double MaxExtStepSize(struct sDIGITAL_PWM *inst, double t)
 {
    return inst->maxstep; // implement a good choice of max timestep size that depends on struct sEPWM
 }
 
-extern "C" __declspec(dllexport) void Trunc(struct sDIGITAL_CLOCK *inst, double t, union uData *data, double *timestep)
+extern "C" __declspec(dllexport) void Trunc(struct sDIGITAL_PWM *inst, double t, union uData *data, double *timestep)
 {
    // limit the timestep to a tolerance if the circuit causes a change in struct sDIGITAL_CLOCK
    if(*timestep > inst->ttol)
    {
-      struct sDIGITAL_CLOCK tmp = *inst;
-      digital_clock(&(&tmp), t, data);
+      struct sDIGITAL_PWM tmp = *inst;
+      digital_pwm(&(&tmp), t, data);
       if(tmp.xcntr != inst->xcntr) // implement a meaningful way to detect if the state has changed
          *timestep = inst->ttol;
    }
 
 }
 
-extern "C" __declspec(dllexport) void Destroy(struct sDIGITAL_CLOCK *inst)
+extern "C" __declspec(dllexport) void Destroy(struct sDIGITAL_PWM *inst)
 {
    free(inst);
 }
