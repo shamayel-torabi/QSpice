@@ -94,7 +94,8 @@ double v_square;
       inst->index = 0;
       inst->v_mn_sum = 0.0;
       inst->v_sq_sum = 0.0;
-      inst->v_mean = 220 * sqrt(2);
+      //inst->v_mean = 220 * sqrt(2);
+      inst->v_mean = 0.0;
 
       Vrms  = 0.0;
       Vmean = 0.0;
