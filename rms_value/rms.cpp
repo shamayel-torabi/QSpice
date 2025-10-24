@@ -52,6 +52,7 @@ struct InstanceData
   double v_mn_array[FS];
 
   size_t index;
+  double last_Iin;
   double v_mn_sum;
   double v_sq_sum;
   double v_mean;
@@ -91,6 +92,7 @@ extern "C" __declspec(dllexport) void rms(struct InstanceData **opaque, double t
       }
 
       inst->index = 0;
+      inst->last_Iin = 0.0;
       inst->v_mn_sum = 0.0;
       inst->v_sq_sum = 0.0;
       inst->v_mean = 0.0;
@@ -124,13 +126,14 @@ extern "C" __declspec(dllexport) void rms(struct InstanceData **opaque, double t
       }
 
       inst->tickCnt++;
+      inst->last_Iin = In;
       inst->next_t = calcTickTime(inst);
       inst->incr_t = inst->ttol;
    }
 
    Irms = sqrt(inst->v_sq_sum / FS);
 
-   if((Irms > Is) && !inst->sw_lach){
+   if((Irms > Is || fabs(In - inst->last_Iin) > 4 * Is) && (!inst->sw_lach)){
       inst->sw_lach = true;
    }
 
