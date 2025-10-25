@@ -5,6 +5,8 @@
 //    dmc -mn -WD spwm.cpp kernel32.lib
 
 #include <malloc.h>
+#include <time.h>
+#include <math.h>
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
 
@@ -36,24 +38,31 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef g3
 #undef g4
 
-#define PER 9443
-
 struct sSPWM
 {
   // declare the structure here
   long long int xcntr;
   double maxstep;
+  double t_prev;
+
+  double trg1; // trigger cmp at rising
+  double trg2; // trigger at half period
+  double trg3; // trigger cmp at falling
+  double trg4; // trigger at full period
+
+  double xpeak;
+  double xcmp;
+
+  bool pwm_trigger;
 
   double ttol;
   double mcu_clk;
-
-  double t_prev;
-  double startTrg;
-  unsigned short counter;
 };
 
 extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, union uData *data)
 {
+   const double peak    = 200;
+
    double  Vref = data[0].d; // input
    const double  TTOL = data[1].d; // input parameter
    const double  FREQ = data[2].d; // input parameter
@@ -69,28 +78,75 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
 
       struct sSPWM *inst = *opaque;
 
-      inst->startTrg = 0;
-      inst->maxstep = 1e-9;
+      inst->xpeak= peak;
+      inst->xcmp = 0;
+
+      inst->trg1 = 2*inst->xpeak/inst->mcu_clk;
+      inst->trg2 = 2*inst->xpeak/inst->mcu_clk;
+      inst->trg3 = 2*inst->xpeak/inst->mcu_clk;
+      inst->trg4 = 2*inst->xpeak/inst->mcu_clk;
+
       inst->ttol = TTOL;
       inst->mcu_clk = FREQ;
-      inst->counter = 0;
+
+      g1 = 0.0;
+      g2 = 0.0;
+      g3 = 0.0;
+      g4 = 0.0;
+
+      inst->maxstep = 1e-9;
    }
    struct sSPWM *inst = *opaque;
 // Implement module evaluation code here:
-   if((inst->t_prev <= inst->startTrg)&&(t >= inst->startTrg)){
-      inst->startTrg += 1.0/inst->mcu_clk;
-      inst->maxstep = 1.0/inst->mcu_clk;
+   inst->pwm_trigger = false;
 
-      inst->counter++;
-      if(inst->counter >= PER){
-         inst->counter = 0;
-         g1 = 0.0;
-      }
+   if((inst->t_prev <= inst->trg4)&&(t >= inst->trg4))
+   {
+      inst->xcntr++;
+      inst->xpeak= peak;
+      inst->xcmp = 100;
 
+      inst->trg1 = inst->trg4 + inst->xcmp/inst->mcu_clk;
+      inst->trg2 = inst->trg4 + inst->xpeak/inst->mcu_clk;
+      inst->trg3 = inst->trg4 + (2*inst->xpeak - inst->xcmp)/inst->mcu_clk;
+      inst->trg4 = inst->trg4 + 2*inst->xpeak/inst->mcu_clk;
+
+      inst->maxstep = peak/inst->mcu_clk;
+
+      //===================================================================
+      // control algorithm interrupt - START ==============================
+      //===================================================================
+
+      //===================================================================
+      // control algorithm interrupt - END   ==============================
+      //===================================================================
    }
 
-   if(inst->counter >= PER / 2)
-      g1 = 15.0;
+   if((inst->t_prev <= inst->trg2)&&(t >= inst->trg2))
+   {
+      inst->xcntr++;
+   }
+
+   if(t < inst->trg2)
+   {
+      if((inst->t_prev <= inst->trg1)&&(t >= inst->trg1))
+      {
+         inst->xcntr++;
+         g1 = 0;
+         g2 = 15.0;
+         inst->pwm_trigger = true;
+      }
+   }
+   else
+   {
+      if((inst->t_prev <= inst->trg3)&&(t >= inst->trg3))
+      {
+         inst->xcntr++;
+         g1 = 15.0;
+         g2 = 0.0;
+         inst->pwm_trigger = true;
+      }
+   }
 
    inst->t_prev = t;
 }
@@ -101,15 +157,25 @@ extern "C" __declspec(dllexport) double MaxExtStepSize(struct sSPWM *inst, doubl
 }
 
 extern "C" __declspec(dllexport) void Trunc(struct sSPWM *inst, double t, union uData *data, double *timestep)
-{ // limit the timestep to a tolerance if the circuit causes a change in struct sSPWM
-   const double ttol = 1e-9; // 1ns default tolerance
-   if(*timestep > ttol)
+{
+   // limit the timestep to a tolerance if the circuit causes a change in struct sSPWM
+   if(*timestep > inst->ttol)
    {
       struct sSPWM tmp = *inst;
       spwm(&(&tmp), t, data);
       if(tmp.xcntr != inst->xcntr) // implement a meaningful way to detect if the state has changed
          *timestep = inst->ttol;
    }
+
+   // struct sSPWM tmp = *inst;
+   // if(inst->t_prev < inst->trg1){*timestep = (inst->trg1 - inst->t_prev);}
+   // if(inst->t_prev < inst->trg2){if(*timestep > (inst->trg2 - inst->t_prev)){*timestep = (inst->trg2 - inst->t_prev);}}
+   // if(inst->t_prev < inst->trg3){if(*timestep > (inst->trg3 - inst->t_prev)){*timestep = (inst->trg3 - inst->t_prev);}}
+   // if(inst->t_prev < inst->trg4){if(*timestep > (inst->trg4 - inst->t_prev)){*timestep = (inst->trg4 - inst->t_prev);}}
+   // if(inst->pwm_trigger)
+   // {
+   //    if(*timestep > ttol) *timestep = inst->ttol;
+   // }
 }
 
 extern "C" __declspec(dllexport) void Destroy(struct sSPWM *inst)
