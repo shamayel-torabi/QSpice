@@ -62,7 +62,7 @@ struct sSPWM
 
 extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, union uData *data)
 {
-   const double peak    = 200;
+   const double peak    = 4722;
 
    double  Vref = data[0].d; // input
    const double  TTOL = data[1].d; // input parameter
@@ -117,7 +117,7 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       //===================================================================
       // control algorithm interrupt - START ==============================
       //===================================================================
-      inst->duty = 100;
+      inst->duty = round(peak/2);
       //===================================================================
       // control algorithm interrupt - END   ==============================
       //===================================================================
