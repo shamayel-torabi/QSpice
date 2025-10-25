@@ -90,8 +90,8 @@ extern "C" __declspec(dllexport) void dpwm(struct sDPWM **opaque, double t, unio
       inst->xpeak= peak;
       inst->xcmp = round(vm * abs(vin));
 
-      if(inst->xcmp > inst->xpeak)
-         inst->xcmp = inst->xpeak;
+      if(inst->xcmp > peak)
+         inst->xcmp = peak;
 
       inst->cmpTrg = inst->endTrg + inst->xcmp/mcu_clk;
       inst->endTrg = inst->endTrg + inst->xpeak/mcu_clk;
@@ -111,10 +111,10 @@ extern "C" __declspec(dllexport) void dpwm(struct sDPWM **opaque, double t, unio
    inst->t_prev = t;
 }
 
-//extern "C" __declspec(dllexport) double MaxExtStepSize(struct sDPWM *inst, double t)
-//{
-//   return inst->maxstep;
-//}
+extern "C" __declspec(dllexport) double MaxExtStepSize(struct sDPWM *inst, double t)
+{
+   return inst->maxstep;
+}
 
 extern "C" __declspec(dllexport) void Trunc(struct sDPWM *inst, double t, union uData *data, double *timestep)
 { // limit the timestep to a tolerance if the circuit causes a change in struct sDPWM

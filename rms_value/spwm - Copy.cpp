@@ -1,4 +1,4 @@
-// Automatically generated C++ file on Sat Oct 25 10:58:38 2025
+// Automatically generated C++ file on Sat Oct 25 10:50:07 2025
 //
 // To build with Digital Mars C++ Compiler: 
 //
@@ -36,19 +36,36 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 struct sSPWM
 {
   // declare the structure here
+  long long int xcntr;
+  double maxstep;
+
+  double ttol;
+  double mcu_clk;
+  double per;
+
+  double t_prev;
+  double startTrg;
+  unsigned short counter;
 };
 
 extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, union uData *data)
 {
    double  Vref = data[0].d; // input
-   const double  TTOL = data[1].d; // input parameter
-   const double  FREQ = data[2].d; // input parameter
-   double &Va   = data[3].d; // output
+   double &Va   = data[1].d; // output
 
    if(!*opaque)
    {
       *opaque = (struct sSPWM *) malloc(sizeof(struct sSPWM));
       bzero(*opaque, sizeof(struct sSPWM));
+      
+      struct sSPWM *inst = *opaque;
+      
+      inst->startTrg = 0;
+      inst->maxstep = 1e-9;
+      inst->ttol = TTOL;
+      inst->mcu_clk = FREQ;
+      inst->per = PER;
+      inst->counter = 0;
    }
    struct sSPWM *inst = *opaque;
 
@@ -58,7 +75,7 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
 
 extern "C" __declspec(dllexport) double MaxExtStepSize(struct sSPWM *inst, double t)
 {
-   return 1e308; // implement a good choice of max timestep size that depends on struct sSPWM
+   return inst->maxstep; // implement a good choice of max timestep size that depends on struct sEPWM
 }
 
 extern "C" __declspec(dllexport) void Trunc(struct sSPWM *inst, double t, union uData *data, double *timestep)
@@ -68,8 +85,8 @@ extern "C" __declspec(dllexport) void Trunc(struct sSPWM *inst, double t, union 
    {
       struct sSPWM tmp = *inst;
       spwm(&(&tmp), t, data);
-   // if(tmp != *inst) // implement a meaningful way to detect if the state has changed
-   //    *timestep = ttol;
+      if(tmp.xcntr != inst->xcntr) // implement a meaningful way to detect if the state has changed
+         *timestep = inst->ttol;
    }
 }
 
