@@ -1,4 +1,4 @@
-// Automatically generated C++ file on Sat Oct 25 11:04:29 2025
+// Automatically generated C++ file on Sun Oct 26 21:43:11 2025
 //
 // To build with Digital Mars C++ Compiler:
 //
@@ -7,6 +7,8 @@
 #include <malloc.h>
 #include <time.h>
 #include <math.h>
+
+#define PI 3.14159265358979
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
 
@@ -35,10 +37,7 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Vref
 #undef g1
 #undef g2
-#undef g3
-#undef g4
-#define PI 3.14159265358979
-
+#undef Counter
 
 struct sSPWM
 {
@@ -65,15 +64,13 @@ struct sSPWM
 
 extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, union uData *data)
 {
-   const double peak    = 4722;
-
-   double  Vref = data[0].d; // input
-   const double  TTOL = data[1].d; // input parameter
-   const double  FREQ = data[2].d; // input parameter
-   double &g1   = data[3].d; // output
-   double &g2   = data[4].d; // output
-   double &g3   = data[5].d; // output
-   double &g4   = data[6].d; // output
+   double          Vref    = data[0].d ; // input
+   const double          TTOL    = data[1].d ; // input parameter
+   const double          FREQ    = data[2].d ; // input parameter
+   const double          PER     = data[3].d ; // input parameter
+   double         &g1      = data[4].d ; // output
+   double         &g2      = data[5].d ; // output
+   unsigned short &Counter = data[6].us; // output
 
    if(!*opaque)
    {
@@ -85,7 +82,7 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->ttol = TTOL;
       inst->mcu_clk = FREQ;
 
-      inst->xpeak= peak;
+      inst->xpeak= PER;
       inst->xcmp = 0;
 
       inst->trg1 = 2*inst->xpeak/inst->mcu_clk;
@@ -97,19 +94,19 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
 
       g1 = 0.0;
       g2 = 0.0;
-      g3 = 0.0;
-      g4 = 0.0;
+      Counter = 0;
 
       inst->maxstep = 1e-9;
    }
    struct sSPWM *inst = *opaque;
+
 // Implement module evaluation code here:
    inst->pwm_trigger = false;
 
    if((inst->t_prev <= inst->trg4)&&(t >= inst->trg4))
    {
       inst->xcntr++;
-      inst->xpeak= peak;
+      inst->xpeak= PER;
       inst->xcmp = inst->duty;
 
       inst->trg1 = inst->trg4 + inst->xcmp/inst->mcu_clk;
@@ -117,34 +114,36 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->trg3 = inst->trg4 + (2*inst->xpeak - inst->xcmp)/inst->mcu_clk;
       inst->trg4 = inst->trg4 + 2*inst->xpeak/inst->mcu_clk;
 
-      inst->maxstep = peak/inst->mcu_clk;
+      inst->maxstep = PER/inst->mcu_clk;
 
       inst->counter++;
-      if(inst->counter >= 2 * peak)
+      if(inst->counter >= 360)
          inst->counter = 0;
 
       //===================================================================
       // control algorithm interrupt - START ==============================
       //===================================================================
-      double theta = inst->counter * PI / peak;
-      inst->duty = round(peak * sin(theta));
+      double theta = inst->counter * PI / 360.0;
+      inst->duty = round(PER * sin(theta));
       //===================================================================
       // control algorithm interrupt - END   ==============================
       //===================================================================
    }
+
 
    if((inst->t_prev <= inst->trg2)&&(t >= inst->trg2))
    {
       inst->xcntr++;
    }
 
+
    if(t < inst->trg2)
    {
       if((inst->t_prev <= inst->trg1)&&(t >= inst->trg1))
       {
          inst->xcntr++;
-         g1 = 0;
-         g2 = 15.0;
+         g1 = 0.0;
+         g2 = 0.0;
          inst->pwm_trigger = true;
       }
    }
@@ -153,12 +152,19 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       if((inst->t_prev <= inst->trg3)&&(t >= inst->trg3))
       {
          inst->xcntr++;
-         g1 = 15.0;
-         g2 = 0.0;
+         if(inst->counter <= 180){
+            g1 = 15.0;
+            g2 = 0.0;
+         }
+         else{
+            g2 = 15.0;
+            g1 = 0.0;
+         }
          inst->pwm_trigger = true;
       }
    }
 
+   Counter = inst->counter;
    inst->t_prev = t;
 }
 
