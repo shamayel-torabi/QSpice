@@ -57,11 +57,12 @@ struct sSPWM
 
   double ttol;
   double mcu_clk;
+  double duty;
 };
 
 extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, union uData *data)
 {
-   const double peak    = 200;
+   const double peak    = 4722;
 
    double  Vref = data[0].d; // input
    const double  TTOL = data[1].d; // input parameter
@@ -78,6 +79,9 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
 
       struct sSPWM *inst = *opaque;
 
+      inst->ttol = TTOL;
+      inst->mcu_clk = FREQ;
+
       inst->xpeak= peak;
       inst->xcmp = 0;
 
@@ -85,9 +89,6 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->trg2 = 2*inst->xpeak/inst->mcu_clk;
       inst->trg3 = 2*inst->xpeak/inst->mcu_clk;
       inst->trg4 = 2*inst->xpeak/inst->mcu_clk;
-
-      inst->ttol = TTOL;
-      inst->mcu_clk = FREQ;
 
       g1 = 0.0;
       g2 = 0.0;
@@ -104,7 +105,7 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
    {
       inst->xcntr++;
       inst->xpeak= peak;
-      inst->xcmp = 100;
+      inst->xcmp = inst->duty;
 
       inst->trg1 = inst->trg4 + inst->xcmp/inst->mcu_clk;
       inst->trg2 = inst->trg4 + inst->xpeak/inst->mcu_clk;
@@ -116,7 +117,7 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       //===================================================================
       // control algorithm interrupt - START ==============================
       //===================================================================
-
+      inst->duty = round(peak/2);
       //===================================================================
       // control algorithm interrupt - END   ==============================
       //===================================================================
@@ -157,8 +158,8 @@ extern "C" __declspec(dllexport) double MaxExtStepSize(struct sSPWM *inst, doubl
 }
 
 extern "C" __declspec(dllexport) void Trunc(struct sSPWM *inst, double t, union uData *data, double *timestep)
-{ // limit the timestep to a tolerance if the circuit causes a change in struct sSPWM
-   const double ttol = 1e-9; // 1ns default tolerance
+{
+   // limit the timestep to a tolerance if the circuit causes a change in struct sSPWM
 
    struct sSPWM tmp = *inst;
    if(inst->t_prev < inst->trg1){*timestep = (inst->trg1 - inst->t_prev);}
@@ -167,7 +168,7 @@ extern "C" __declspec(dllexport) void Trunc(struct sSPWM *inst, double t, union 
    if(inst->t_prev < inst->trg4){if(*timestep > (inst->trg4 - inst->t_prev)){*timestep = (inst->trg4 - inst->t_prev);}}
    if(inst->pwm_trigger)
    {
-      if(*timestep > ttol) *timestep = inst->ttol;
+      if(*timestep > inst->ttol) *timestep = inst->ttol;
    }
 }
 

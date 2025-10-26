@@ -37,6 +37,8 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef g2
 #undef g3
 #undef g4
+#define PI 3.14159265358979
+
 
 struct sSPWM
 {
@@ -58,6 +60,7 @@ struct sSPWM
   double ttol;
   double mcu_clk;
   double duty;
+  unsigned short counter;
 };
 
 extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, union uData *data)
@@ -90,6 +93,8 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->trg3 = 2*inst->xpeak/inst->mcu_clk;
       inst->trg4 = 2*inst->xpeak/inst->mcu_clk;
 
+      inst->counter = 0;
+
       g1 = 0.0;
       g2 = 0.0;
       g3 = 0.0;
@@ -114,10 +119,15 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
 
       inst->maxstep = peak/inst->mcu_clk;
 
+      inst->counter++;
+      if(inst->counter >= 2 * peak)
+         inst->counter = 0;
+
       //===================================================================
       // control algorithm interrupt - START ==============================
       //===================================================================
-      inst->duty = round(peak/2);
+      double theta = inst->counter * PI / peak;
+      inst->duty = round(peak * sin(theta));
       //===================================================================
       // control algorithm interrupt - END   ==============================
       //===================================================================
