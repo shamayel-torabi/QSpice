@@ -1,4 +1,4 @@
-// Automatically generated C++ file on Sun Oct 26 21:43:11 2025
+// Automatically generated C++ file on Mon Oct 27 17:44:38 2025
 //
 // To build with Digital Mars C++ Compiler:
 //
@@ -9,6 +9,7 @@
 #include <math.h>
 
 #define PI 3.14159265358979
+
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
 
@@ -38,6 +39,7 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef g1
 #undef g2
 #undef Counter
+#undef Duty
 
 struct sSPWM
 {
@@ -71,6 +73,7 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
    double         &g1      = data[4].d ; // output
    double         &g2      = data[5].d ; // output
    unsigned short &Counter = data[6].us; // output
+   double         &Duty    = data[7].d ; // output
 
    if(!*opaque)
    {
@@ -109,10 +112,10 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->xpeak= PER;
       inst->xcmp = inst->duty;
 
-      inst->trg1 = inst->trg4 + inst->xcmp/inst->mcu_clk;
-      inst->trg2 = inst->trg4 + inst->xpeak/inst->mcu_clk;
-      inst->trg3 = inst->trg4 + (2*inst->xpeak - inst->xcmp)/inst->mcu_clk;
-      inst->trg4 = inst->trg4 + 2*inst->xpeak/inst->mcu_clk;
+      inst->trg1 = inst->trg4 + inst->xcmp / inst->mcu_clk;
+      inst->trg2 = inst->trg4 + inst->xpeak / inst->mcu_clk;
+      inst->trg3 = inst->trg4 + (2*inst->xpeak - inst->xcmp) / inst->mcu_clk;
+      inst->trg4 = inst->trg4 + 2*inst->xpeak / inst->mcu_clk;
 
       inst->maxstep = PER/inst->mcu_clk;
 
@@ -123,8 +126,8 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       //===================================================================
       // control algorithm interrupt - START ==============================
       //===================================================================
-      double theta = inst->counter * PI / 360.0;
-      inst->duty = round(PER * sin(theta));
+      double theta = inst->counter * PI / 180.0;
+      inst->duty = round(fabs(0.8 * PER * sin(theta)));
       //===================================================================
       // control algorithm interrupt - END   ==============================
       //===================================================================
@@ -136,35 +139,57 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->xcntr++;
    }
 
-
-   if(t < inst->trg2)
+   if(inst->counter == 0 || inst->counter == 180)
    {
-      if((inst->t_prev <= inst->trg1)&&(t >= inst->trg1))
+      g1 = 0;
+      g2 = 0;
+   }
+
+   if(inst->counter < 180){
+      g2 = 0;
+      if(t < inst->trg2)
       {
-         inst->xcntr++;
-         g1 = 0.0;
-         g2 = 0.0;
-         inst->pwm_trigger = true;
+         if((inst->t_prev <= inst->trg1)&&(t >= inst->trg1))
+         {
+            inst->xcntr++;
+            g1 = 0;
+            inst->pwm_trigger = true;
+         }
+      }
+      else
+      {
+         if((inst->t_prev <= inst->trg3)&&(t >= inst->trg3))
+         {
+            inst->xcntr++;
+            g1 = 15;
+            inst->pwm_trigger = true;
+         }
       }
    }
-   else
-   {
-      if((inst->t_prev <= inst->trg3)&&(t >= inst->trg3))
+   else{
+      g1 = 0;
+      if(t < inst->trg2)
       {
-         inst->xcntr++;
-         if(inst->counter <= 180){
-            g1 = 15.0;
-            g2 = 0.0;
+         if((inst->t_prev <= inst->trg1)&&(t >= inst->trg1))
+         {
+            inst->xcntr++;
+            g2 = 0;
+            inst->pwm_trigger = true;
          }
-         else{
-            g2 = 15.0;
-            g1 = 0.0;
+      }
+      else
+      {
+         if((inst->t_prev <= inst->trg3)&&(t >= inst->trg3))
+         {
+            inst->xcntr++;
+            g2 = 15;
+            inst->pwm_trigger = true;
          }
-         inst->pwm_trigger = true;
       }
    }
 
    Counter = inst->counter;
+   Duty = inst->duty;
    inst->t_prev = t;
 }
 

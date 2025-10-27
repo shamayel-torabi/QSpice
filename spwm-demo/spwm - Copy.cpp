@@ -136,40 +136,82 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->xcntr++;
    }
 
-
-   if(t < inst->trg2)
+   if(inst->counter == 0 || inst->counter == 180)
    {
-      if((inst->t_prev <= inst->trg1)&&(t >= inst->trg1))
-      {
-         inst->xcntr++;
-         if(inst->counter < 180){
-            g1 = 0.0;
-            g2 = 0.0;
-         }
-         else{
-            g2 = 0.0;
-            g1 = 0.0;
-         }
+      g1 = 0;
+      g2 = 0;
+   }
 
-         inst->pwm_trigger = true;
+   if(inst->counter < 180){
+      g2 = 0;
+      if(t < inst->trg2)
+      {
+         if((inst->t_prev <= inst->trg1)&&(t >= inst->trg1))
+         {
+            inst->xcntr++;
+            g1 = 0;
+            inst->pwm_trigger = true;
+         }
+      }
+      else
+      {
+         if((inst->t_prev <= inst->trg3)&&(t >= inst->trg3))
+         {
+            inst->xcntr++;
+            g1 = 15;
+            inst->pwm_trigger = true;
+         }
       }
    }
-   else
-   {
-      if((inst->t_prev <= inst->trg3)&&(t >= inst->trg3))
+   else{
+      g1 = 0;
+      if(t < inst->trg2)
       {
-         inst->xcntr++;
-         if(inst->counter < 180){
-            g1 = 15.0;
-            g2 = 0.0;
+         if((inst->t_prev <= inst->trg1)&&(t >= inst->trg1))
+         {
+            inst->xcntr++;
+            g2 = 0;
+            inst->pwm_trigger = true;
          }
-         else{
-            g2 = 15.0;
-            g1 = 0.0;
+      }
+      else
+      {
+         if((inst->t_prev <= inst->trg3)&&(t >= inst->trg3))
+         {
+            inst->xcntr++;
+            g2 = 15;
+            inst->pwm_trigger = true;
          }
-         inst->pwm_trigger = true;
       }
    }
+
+
+   // if(t < inst->trg2)
+   // {
+   //    if((inst->t_prev <= inst->trg1)&&(t >= inst->trg1))
+   //    {
+   //       inst->xcntr++;
+   //       g1 = 0.0;
+   //       g2 = 0.0;
+   //       inst->pwm_trigger = true;
+   //    }
+   // }
+   // else
+   // {
+   //    if((inst->t_prev <= inst->trg3)&&(t >= inst->trg3))
+   //    {
+   //       inst->xcntr++;
+   //       if(inst->counter <= 180){
+   //          g1 = 15.0;
+   //          g2 = 0.0;
+   //       }
+   //       else{
+   //          g2 = 15.0;
+   //          g1 = 0.0;
+   //       }
+   //       inst->pwm_trigger = true;
+   //    }
+   // }
 
    Counter = inst->counter;
    inst->t_prev = t;
