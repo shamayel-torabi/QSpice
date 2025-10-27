@@ -66,14 +66,14 @@ struct sSPWM
 
 extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, union uData *data)
 {
-   double          Vref    = data[0].d ; // input
+   double                Vref    = data[0].d ; // input
    const double          TTOL    = data[1].d ; // input parameter
    const double          FREQ    = data[2].d ; // input parameter
    const double          PER     = data[3].d ; // input parameter
-   double         &g1      = data[4].d ; // output
-   double         &g2      = data[5].d ; // output
-   unsigned short &Counter = data[6].us; // output
-   double         &Duty    = data[7].d ; // output
+   double                &g1      = data[4].d ; // output
+   double                &g2      = data[5].d ; // output
+   unsigned short        &Counter = data[6].us; // output
+   double                &Duty    = data[7].d ; // output
 
    if(!*opaque)
    {
@@ -120,7 +120,7 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->maxstep = PER/inst->mcu_clk;
 
       inst->counter++;
-      if(inst->counter >= 360)
+      if(inst->counter >= 2 * PER / 50)
          inst->counter = 0;
 
       //===================================================================
