@@ -96,9 +96,8 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->trg3 = 2 * inst->xpeak / inst->mcu_clk;
       inst->trg4 = 2 * inst->xpeak / inst->mcu_clk;
 
-
       inst->duty = 0.0;
-      inst->carrier_f = (FREQ / (2 * PER)) / 50 ;
+      inst->carrier_f = FREQ / (100 * PER) ;
       inst->counter = 0;
 
       g1 = 0.0;
