@@ -105,6 +105,7 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       Counter = 0;
 
       inst->maxstep = 1e-9;
+      inst->
    }
    struct sSPWM *inst = *opaque;
 
