@@ -61,19 +61,22 @@ struct sSPWM
   double ttol;
   double mcu_clk;
   double duty;
+  double carrier_f;
   unsigned short counter;
 };
 
 extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, union uData *data)
 {
-   double          Vref    = data[0].d ; // input
+   double                Vref    = data[0].d ; // input
    const double          TTOL    = data[1].d ; // input parameter
    const double          FREQ    = data[2].d ; // input parameter
    const double          PER     = data[3].d ; // input parameter
-   double         &g1      = data[4].d ; // output
-   double         &g2      = data[5].d ; // output
-   unsigned short &Counter = data[6].us; // output
-   double         &Duty    = data[7].d ; // output
+   double                &g1      = data[4].d ; // output
+   double                &g2      = data[5].d ; // output
+   unsigned short        &Counter = data[6].us; // output
+   double                &Duty    = data[7].d ; // output
+
+
 
    if(!*opaque)
    {
@@ -93,6 +96,9 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->trg3 = 2*inst->xpeak/inst->mcu_clk;
       inst->trg4 = 2*inst->xpeak/inst->mcu_clk;
 
+
+      inst->duty = 0.0;
+      inst->carrier_f = (FREQ / (2 * PER)) / 50 ;
       inst->counter = 0;
 
       g1 = 0.0;
@@ -117,17 +123,17 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->trg3 = inst->trg4 + (2*inst->xpeak - inst->xcmp) / inst->mcu_clk;
       inst->trg4 = inst->trg4 + 2*inst->xpeak / inst->mcu_clk;
 
-      inst->maxstep = PER/inst->mcu_clk;
+      inst->maxstep = PER / inst->mcu_clk;
 
       inst->counter++;
-      if(inst->counter >= 360)
+      if(inst->counter >= inst->carrier_f)
          inst->counter = 0;
 
       //===================================================================
       // control algorithm interrupt - START ==============================
       //===================================================================
-      double theta = inst->counter * PI / 180.0;
-      inst->duty = round(fabs(0.8 * PER * sin(theta)));
+      double theta = inst->counter * 2 * PI / inst->carrier_f;
+      inst->duty = round(fabs(0.9 * PER * sin(theta)));
       //===================================================================
       // control algorithm interrupt - END   ==============================
       //===================================================================
@@ -139,13 +145,13 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->xcntr++;
    }
 
-   if(inst->counter == 0 || inst->counter == 180)
-   {
-      g1 = 0;
-      g2 = 0;
-   }
+   //if(inst->counter == 0 || inst->counter == inst->carrier_f / 2)
+   //{
+   //   g1 = 0;
+   //   g2 = 0;
+   //}
 
-   if(inst->counter < 180){
+   if(inst->counter < inst->carrier_f / 2){
       g2 = 0;
       if(t < inst->trg2)
       {
