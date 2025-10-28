@@ -76,7 +76,7 @@ const unsigned int sine_table[] ={
 9301,9238,9163,9078,8982,8874,8756,8628,8488,8339,
 8179,8009,7829,7640,7442,7235,7018,6793,6560,6319,
 6070,5814,5551,5281,5005,4722,4434,4140,3841,3538,
-3230,2918,2603,2285,1964,1640,1314,987,659,330
+3230,2918,2603,2285,1964,1640,1314,987,659,330,0
 };
 
 extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, union uData *data)
@@ -118,7 +118,7 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
 
       inst->carrier_f = (unsigned short) floor(FREQ / (200 * PER));
       inst->duty = 0;
-      inst->counter = 0;
+      inst->counter = 1;
       inst->up_counte = true;
 
       g1 = 0.0;
@@ -150,8 +150,8 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       if(inst->up_counte){
          inst->counter++;
 
-         if(inst->counter >= inst->carrier_f){
-            inst->counter--;
+         if(inst->counter > inst->carrier_f){
+            inst->counter = inst->carrier_f;
             inst->up_counte = false;
          }
       }
