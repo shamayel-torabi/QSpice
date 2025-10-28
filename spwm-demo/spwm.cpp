@@ -53,16 +53,30 @@ struct sSPWM
   double trg3; // trigger cmp at falling
   double trg4; // trigger at full period
 
-  double xpeak;
-  double xcmp;
-
   bool pwm_trigger;
 
   double ttol;
   double mcu_clk;
-  double duty;
-  double carrier_f;
+
+  unsigned short xpeak;
+  unsigned short xcmp;
+
+  unsigned short carrier_f;
+  unsigned short duty;
   unsigned short counter;
+  bool up_counte;
+};
+
+const unsigned int sine_table[] ={
+0,330,659,987,1314,1640,1964,2285,2603,2918,
+3230,3538,3841,4140,4434,4722,5005,5281,5551,5814,
+6070,6319,6560,6793,7018,7235,7442,7640,7829,8009,
+8179,8339,8488,8628,8756,8874,8982,9078,9163,9238,
+9301,9352,9392,9421,9438,9444,9438,9421,9392,9352,
+9301,9238,9163,9078,8982,8874,8756,8628,8488,8339,
+8179,8009,7829,7640,7442,7235,7018,6793,6560,6319,
+6070,5814,5551,5281,5005,4722,4434,4140,3841,3538,
+3230,2918,2603,2285,1964,1640,1314,987,659,330
 };
 
 extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, union uData *data)
@@ -88,24 +102,31 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->ttol = TTOL;
       inst->mcu_clk = FREQ;
 
-      inst->xpeak= PER;
+      inst->xpeak= (unsigned short)PER;
       inst->xcmp = 0;
 
-      inst->trg1 = 2 * inst->xpeak / inst->mcu_clk;
-      inst->trg2 = 2 * inst->xpeak / inst->mcu_clk;
-      inst->trg3 = 2 * inst->xpeak / inst->mcu_clk;
+      // inst->trg1 = 2 * inst->xpeak / inst->mcu_clk;
+      // inst->trg2 = 2 * inst->xpeak / inst->mcu_clk;
+      // inst->trg3 = 2 * inst->xpeak / inst->mcu_clk;
+      // inst->trg4 = 2 * inst->xpeak / inst->mcu_clk;
+
+      inst->trg1 = 0;
+      inst->trg2 = 1 * inst->xpeak / inst->mcu_clk;
+      inst->trg3 = 0;
       inst->trg4 = 2 * inst->xpeak / inst->mcu_clk;
 
-      inst->duty = 0.0;
-      inst->carrier_f = FREQ / (100 * PER) ;
+
+      inst->carrier_f = (unsigned short) floor(FREQ / (200 * PER));
+      inst->duty = 0;
       inst->counter = 0;
+      inst->up_counte = true;
 
       g1 = 0.0;
       g2 = 0.0;
       Counter = 0;
 
-      inst->maxstep = 1e-9;
-      inst->
+      inst->maxstep = 1e-6;
+      inst->t_prev = 0.0;
    }
    struct sSPWM *inst = *opaque;
 
@@ -116,6 +137,33 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
    {
       inst->xcntr++;
       inst->xpeak= PER;
+
+      //===================================================================
+      // control algorithm interrupt - START ==============================
+      //===================================================================
+
+      inst->duty = (unsigned short) (0.9 * sine_table[inst->counter]);
+      //===================================================================
+      // control algorithm interrupt - END   ==============================
+      //===================================================================
+
+      if(inst->up_counte){
+         inst->counter++;
+
+         if(inst->counter >= inst->carrier_f){
+            inst->counter--;
+            inst->up_counte = false;
+         }
+      }
+      else{
+         inst->counter--;
+         if(inst->counter <= 0)
+         {
+            inst->counter = 0;
+            inst->up_counte = true;
+         }
+      }
+
       inst->xcmp = inst->duty;
 
       inst->trg1 = inst->trg4 + inst->xcmp / inst->mcu_clk;
@@ -124,19 +172,6 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->trg4 = inst->trg4 + 2*inst->xpeak / inst->mcu_clk;
 
       inst->maxstep = PER / inst->mcu_clk;
-
-      inst->counter++;
-      if(inst->counter >= inst->carrier_f)
-         inst->counter = 0;
-
-      //===================================================================
-      // control algorithm interrupt - START ==============================
-      //===================================================================
-      double theta = inst->counter * 2 * PI / inst->carrier_f;
-      inst->duty = round(fabs(0.9 * PER * sin(theta)));
-      //===================================================================
-      // control algorithm interrupt - END   ==============================
-      //===================================================================
    }
 
 
@@ -145,34 +180,13 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
       inst->xcntr++;
    }
 
-   if(inst->counter == 0 || inst->counter == inst->carrier_f / 2)
-   {
-      g1 = 0;
-      g2 = 0;
-   }
+   // if(inst->counter == 0 || inst->counter == inst->carrier_f / 2)
+   // {
+   //    g1 = 0;
+   //    g2 = 0;
+   // }
 
-   if(inst->counter < inst->carrier_f / 2){
-      g2 = 0;
-      if(t < inst->trg2)
-      {
-         if((inst->t_prev <= inst->trg1)&&(t >= inst->trg1))
-         {
-            inst->xcntr++;
-            g1 = 0;
-            inst->pwm_trigger = true;
-         }
-      }
-      else
-      {
-         if((inst->t_prev <= inst->trg3)&&(t >= inst->trg3))
-         {
-            inst->xcntr++;
-            g1 = 15;
-            inst->pwm_trigger = true;
-         }
-      }
-   }
-   else{
+   if(inst->up_counte){
       g1 = 0;
       if(t < inst->trg2)
       {
@@ -192,6 +206,29 @@ extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, unio
             inst->pwm_trigger = true;
          }
       }
+   }
+   else{
+
+      g2 = 0;
+      if(t < inst->trg2)
+      {
+         if((inst->t_prev <= inst->trg1)&&(t >= inst->trg1))
+         {
+            inst->xcntr++;
+            g1 = 0;
+            inst->pwm_trigger = true;
+         }
+      }
+      else
+      {
+         if((inst->t_prev <= inst->trg3)&&(t >= inst->trg3))
+         {
+            inst->xcntr++;
+            g1 = 15;
+            inst->pwm_trigger = true;
+         }
+      }
+
    }
 
    Counter = inst->counter;
