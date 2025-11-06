@@ -87,7 +87,6 @@ const unsigned int sine_table[] ={
 919,828,737,645,553,461,369,277,185,92,0
 };
 
-
 extern "C" __declspec(dllexport) void spwm(struct sSPWM **opaque, double t, union uData *data)
 {
    double                Vref    = data[0].d ; // input

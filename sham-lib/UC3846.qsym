@@ -1,0 +1,25 @@
+ÿØÿÛ«symbol
+  «type: X»
+  «description: Machine generated symbol for UC3846»
+  «library file: |.subckt UC3846 Clad Vref CS- CS+ NI INV Comp Ct Rt Sync Aout GRD Vc Bout Vin Shdn\nF1 iref Ct Vdt 1\nVdt iref N003 0\nD1 N003 Rt drt\nR1 Vin N012 3.2k\nD2 GRD N012 dref\nE1 iref GRD N012 GRD 1\nI1 GRD Vref 45m\nD3 Vref iref drout\nD4 GRD Vref drout\nA2 N004 GRD N005 GRD GRD N004 N007 GRD DFLOP Trise=20n Vhigh=5\nA3 N005 GRD N001 GRD N007 N006 N002 GRD OR Trise=20n Vhigh=5\nA4 N004 N001 GRD GRD N005 N010 N009 GRD OR Trise=20n Vhigh=5\nS1 Aout Vc N002 GRD HOUT\nS2 GRD Aout N006 GRD LOUT\nS3 Bout Vc N009 GRD HOUT\nS4 GRD Bout N010 GRD LOUT\nA5 N008 GRD GRD GRD N016 GRD N005 GRD OR Trise=20n Vhigh=5\nA6 N008 N015 GRD GRD GRD N016 GRD GRD SRFLOP Trise=20n Vhigh=5\nE2 N018 GRD CS+ CS- table=(0 0,1.3 3.6)\nA8 N018 N019 GRD GRD GRD GRD N013 GRD SCHMITT Trise=20n Vhigh=5 Vt=0 Vh=0\nA9 N013 GRD GRD GRD N021 GRD N015 GRD OR Trise=20n Vhigh=5\nG1 N022 GRD INV NI table=(0 0,3m 9m)\nC1 Comp GRD 0.47u Rpar=100k\nD5 GRD N022 deaz\nI2 GRD Comp 0.5m\nV4 Comp N019 1.2\nD6 Comp N023 dcla\nE3 N023 GRD N020 GRD 1\nS5 GRD N020 N001 GRD scla\nS6 GRD N020 N024 GRD scla\nA7 Vin GRD GRD GRD GRD N001 GRD GRD SCHMITT Trise=20n Vhigh=5 Vt=7.325 Vh=0.375\nVdt2 Clad N020 0\nA10 Shdn GRD GRD GRD GRD GRD N021 GRD BUF Trise=20n Vhigh=5 Ref=0.35\nR3 Shdn GRD 6k\nA11 N021 GRD GRD GRD N025 GRD N024 GRD OR Trise=20n Vhigh=5\nH1 N026 GRD Vdt2 1666\nR4 N025 N026 1k\nD7 Comp N022 dead\nI3 0 N020 30u\nG3 Ct GRD N008 GRD 2.4m\nS7 sync iref N008 GRD sosc\nR2 sync GRD 2240\nA13 N014 N017 GRD GRD GRD GRD N008 GRD SRFLOP Trise=20n Vhigh=5 Ref=3.3\nA14 Ct GRD GRD GRD GRD GRD N011 GRD BUF Trise=20n Vhigh=5 Ref=2.8\nA15 N011 GRD sync GRD GRD GRD N014 GRD OR Trise=20n Vhigh=5 Ref=3.3\nA16 Ct GRD GRD GRD GRD N017 GRD GRD SCHMITT Trise=20n Vhigh=5 Vt=1.3 Vh=0.1\nRaux Ct 0 10meg\n.model drt D(Ron=10 Roff=100Meg Vfwd=1.5)\n.model dref D(Ron=0.5 Roff=100Meg Vfwd=0.7 Vrev=5.085)\n.model drout D(Ron=0.33 Roff=100Meg Vfwd=0)\n.model HOUT SW(Ron=200k Roff=3.75 Vser=1.5 Vt=2.5 Vh=-0.5)\n.model LOUT SW(Ron=200k Roff=3.75 Vser=0.025 Vt=2.5 Vh=-0.5)\n.model deaz D(Ron=0 Roff=200meg Vfwd=0 Vrev=3.9)\n.model dcla D(Ron=82 Roff=200meg Vfwd=0.7)\n.model scla SW(Ron=10 Roff=340k Vt=2.5 Vh=-0.5)\n.model dead D(Ron=82 Roff=200meg Vfwd=0.7)\n.model sosc SW(Ron=386 Roff=2727 Vt=2.5 Vh=0)\n.ends»
+  «shorted pins: false»
+  «rect (-800,-1500) (800,1700) 0 0 0 0xff0000 0x4000000 -1 0 -1»
+  «text (0,633) 1 15 0 0x1000000 -1 -1 "X1"»
+  «text (0,-433) 1 15 0 0x1000000 -1 -1 "UC3846"»
+  «pin (-800,1500) (20,0) 1 7 0 0x0 -1 "Clad"»
+  «pin (-800,1100) (20,0) 1 7 0 0x0 -1 "Vref"»
+  «pin (-800,700) (20,0) 1 7 0 0x0 -1 "CS-"»
+  «pin (-800,300) (20,0) 1 7 0 0x0 -1 "CS+"»
+  «pin (-800,-100) (20,0) 1 7 0 0x0 -1 "NI"»
+  «pin (-800,-500) (20,0) 1 7 0 0x0 -1 "INV"»
+  «pin (-800,-900) (20,0) 1 7 0 0x0 -1 "Comp"»
+  «pin (-800,-1300) (20,0) 1 7 0 0x0 -1 "Ct"»
+  «pin (800,1500) (-20,0) 1 11 0 0x0 -1 "Rt"»
+  «pin (800,1100) (-20,0) 1 11 0 0x0 -1 "Sync"»
+  «pin (800,700) (-20,0) 1 11 0 0x0 -1 "Aout"»
+  «pin (800,300) (-20,0) 1 11 0 0x0 -1 "GRD"»
+  «pin (800,-100) (-20,0) 1 11 0 0x0 -1 "Vc"»
+  «pin (800,-500) (-20,0) 1 11 0 0x0 -1 "Bout"»
+  «pin (800,-900) (-20,0) 1 11 0 0x0 -1 "Vin"»
+  «pin (800,-1300) (-20,0) 1 11 0 0x0 -1 "Shdn"»
+»
