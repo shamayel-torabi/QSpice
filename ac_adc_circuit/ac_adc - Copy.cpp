@@ -1,8 +1,8 @@
-// Automatically generated C++ file on Sat Sep 13 09:30:36 2025
+// Automatically generated C++ file on Mon Mar 30 17:18:29 2026
 //
 // To build with Digital Mars C++ Compiler:
 //
-//    dmc -mn -WD adc.cpp kernel32.lib
+//    dmc -mn -WD ac_adc.cpp kernel32.lib
 
 #include <malloc.h>
 
@@ -34,33 +34,35 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Out
 #undef clk
 
-struct sADC
+struct sAC_ADC
 {
-  unsigned short  adc_value;
-  double          last_clk;
+  short  adc_value;
+  bool   last_clk;
 };
 
-extern "C" __declspec(dllexport) void adc(struct sADC **opaque, double t, union uData *data)
+extern "C" __declspec(dllexport) void ac_adc(struct sAC_ADC **opaque, double t, union uData *data)
 {
-   double          In  = data[0].d ; // input
-   double          clk = data[1].d ; // input
-   unsigned short &Out = data[2].us; // output
+   double  In   = data[0].d; // input
+   bool    clk  = data[1].b; // input
+   double  Vref = data[2].d; // input parameter
+   double &Out  = data[3].d; // output
 
    if(!*opaque)
    {
-      *opaque = (struct sADC *) malloc(sizeof(struct sADC));
-      bzero(*opaque, sizeof(struct sADC));
+      *opaque = (struct sAC_ADC *) malloc(sizeof(struct sAC_ADC));
+      bzero(*opaque, sizeof(struct sAC_ADC));
    }
-   struct sADC *inst = *opaque;
+   struct sAC_ADC *inst = *opaque;
 
-   if(In > 3.2)
-      In = 3.2;
-   if(In < 0.0)
-      In = 0.0;
+// Implement module evaluation code here:
+   if(In > Vref)
+      In = Vref;
+   if(In < - Vref)
+      In = -Vref;
 
-   if(clk > 0.9 && inst->last_clk < 0.1)
+   if (clk && !inst->last_clk)
    {
-      inst->adc_value = unsigned short(In * 4096.0 / 3.2);
+      inst->adc_value = short(In * 4096.0 / Vref);
    }
 
 
@@ -68,7 +70,7 @@ extern "C" __declspec(dllexport) void adc(struct sADC **opaque, double t, union 
    Out = inst->adc_value;
 }
 
-extern "C" __declspec(dllexport) void Destroy(struct sADC *inst)
+extern "C" __declspec(dllexport) void Destroy(struct sAC_ADC *inst)
 {
    free(inst);
 }

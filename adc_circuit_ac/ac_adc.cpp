@@ -1,8 +1,8 @@
-// Automatically generated C++ file on Sat Sep 13 17:18:28 2025
+// Automatically generated C++ file on Mon Mar 30 15:53:25 2026
 //
-// To build with Digital Mars C++ Compiler:
+// To build with Digital Mars C++ Compiler: 
 //
-//    dmc -mn -WD adc.cpp kernel32.lib
+//    dmc -mn -WD ac_adc.cpp kernel32.lib
 
 #include <malloc.h>
 
@@ -34,36 +34,36 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Out
 #undef clk
 
-struct sADC
+struct sAC_ADC
 {
-  unsigned short  adc_value;
+  short  adc_value;
   double          last_clk;
 };
 
-extern "C" __declspec(dllexport) void adc(struct sADC **opaque, double t, union uData *data)
+extern "C" __declspec(dllexport) void ac_adc(struct sAC_ADC **opaque, double t, union uData *data)
 {
    double  In   = data[0].d; // input
    double  clk  = data[1].d; // input
-   const double  Vref = data[2].d; // input parameter
+   double  Vref = data[2].d; // input parameter
    double &Out  = data[3].d; // output
 
    if(!*opaque)
    {
-      *opaque = (struct sADC *) malloc(sizeof(struct sADC));
-      bzero(*opaque, sizeof(struct sADC));
+      *opaque = (struct sAC_ADC *) malloc(sizeof(struct sAC_ADC));
+      bzero(*opaque, sizeof(struct sAC_ADC));
    }
-   struct sADC *inst = *opaque;
+   struct sAC_ADC *inst = *opaque;
 
 // Implement module evaluation code here:
 
    if(In > Vref)
       In = Vref;
-   if(In < )
-      In = 0.0;
+   if(In < - Vref)
+      In = -Vref;
 
-   if(clk > 0.9 && inst->last_clk < 0.1)
+   if(clk > 0.99 && inst->last_clk < 0.01)
    {
-      inst->adc_value = unsigned short(In * 4096.0 / Vref);
+      inst->adc_value = short(In * 4096.0 / Vref);
    }
 
 
@@ -71,7 +71,7 @@ extern "C" __declspec(dllexport) void adc(struct sADC **opaque, double t, union 
    Out = inst->adc_value;
 }
 
-extern "C" __declspec(dllexport) void Destroy(struct sADC *inst)
+extern "C" __declspec(dllexport) void Destroy(struct sAC_ADC *inst)
 {
    free(inst);
 }
