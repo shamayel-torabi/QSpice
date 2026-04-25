@@ -2,6 +2,10 @@
 #ifndef SOGI_H
 #define SOGI_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define K  1.4142135623731
 
 class SOGI {
@@ -61,4 +65,7 @@ protected:
     double vac_n_2;
 };
 
+#ifdef __cplusplus
+}
+#endif
 #endif  //SOGI_H

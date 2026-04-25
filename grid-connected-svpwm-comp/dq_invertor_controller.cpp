@@ -51,6 +51,7 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Vbeta
 #undef Vq
 #undef Vd
+#undef theta
 
 struct sDQ_INVERTOR_CONTROLLER
 {
@@ -90,11 +91,9 @@ struct sDQ_INVERTOR_CONTROLLER
 };
 
 void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
-   double theta =  inst->dsogi(inst->Valpha, inst->Vbeta, t);
-
-   inst->theta = theta;
-   inst->sinValue = sin(theta);
-   inst->cosValue = cos(theta);
+   inst->theta = inst->dsogi(inst->Valpha, inst->Vbeta, t);;
+   inst->sinValue = sin(inst->theta);
+   inst->cosValue = cos(inst->theta);
 };
 
 void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
@@ -134,6 +133,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    double &Vbeta  = data[16].d; // output
    double &Vq     = data[17].d; // output
    double &Vd     = data[18].d; // output
+   double &theta  = data[19].d; // output
 
 
    if(!*opaque)
@@ -156,7 +156,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->maxstep = 10e-12;
 
       inst->dsogi.init(KP_PLL, KI_PLL, F);
-      inst->dq.init(Kp, Ki, L, F, 1000.0, Vdc / 2.0);
+      inst->dq.init(Kp, Ki, L, F, Vdc, 100.0);
    }
    struct sDQ_INVERTOR_CONTROLLER *inst = *opaque;
 
@@ -195,6 +195,8 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
 
    Vd = inst->dq.Vds;
    Vq = inst->dq.Vqs;
+
+   theta = inst->theta;
 
    inst->t_prev = t;
 }

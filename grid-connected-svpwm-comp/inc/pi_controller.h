@@ -16,11 +16,11 @@ class PIController
 public:
     PIController();
 
-    void init(double kp, double ki, double oramp = NOT_SET, double olimit = NOT_SET){
+    void init(double kp, double ki, double limit = NOT_SET, double ramp = NOT_SET){
         Kp = kp;
         Ki = ki;
-        output_ramp = oramp;
-        limit = olimit;
+        output_ramp  = ramp;
+        output_limit = limit;
         reset();
     }
 
@@ -30,12 +30,12 @@ public:
         double integral = integral_prev + Ki * dt * 0.5 *(error + error_prev);
 
         // antiwindup - limit the output
-        if(_isset(limit)) integral = _constrain(integral, -limit, limit);
+        if(_isset(output_limit)) integral = _constrain(integral, -output_limit, output_limit);
 
         double output = proportional + integral;
         
         // antiwindup - limit the output variable
-        if(_isset(limit)) output = _constrain(output, -limit, limit);
+        if(_isset(output_limit)) output = _constrain(output, -output_limit, output_limit);
 
         // if output ramp defined
         if(_isset(output_ramp) && output_ramp > 0.0){
@@ -66,7 +66,7 @@ protected:
     double Kp;          //!< Proportional gain 
     double Ki;          //!< Integral gain 
     double output_ramp; //!< Maximum speed of change of the output value
-    double limit;       //!< Maximum output value
+    double output_limit;       //!< Maximum output value
 
     double error_prev; //!< last tracking error value
     double output_prev;  //!< last pid output value

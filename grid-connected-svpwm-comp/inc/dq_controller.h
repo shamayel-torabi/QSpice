@@ -9,9 +9,9 @@ class DQController {
 public:
     DQController();
 
-    void init(double kp, double ki, double L, double f, double oramp = NOT_SET, double olimit = NOT_SET ){
-        pid_d.init(kp, ki, oramp, olimit);
-        pid_q.init(kp, ki, oramp, olimit);
+    void init(double kp, double ki, double L, double f, double limit = NOT_SET, double ramp = NOT_SET){
+        pid_d.init(kp, ki, limit, ramp);
+        pid_q.init(kp, ki, limit, ramp);
         WL = 2.0 * PI * f * L;
     }
 

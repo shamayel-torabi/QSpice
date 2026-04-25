@@ -40,6 +40,7 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef g4
 #undef g5
 #undef g6
+#undef theta
 
 struct sSVPWM
 {
@@ -71,8 +72,6 @@ struct sSVPWM
    double g5;
    double g6;
 
-   double theta;
-
    SVPWM pwm;
 };
 
@@ -80,16 +79,17 @@ extern "C" __declspec(dllexport) void svpwm(struct sSVPWM **opaque, double t, un
 {
    double  Valpha = data[ 0].d; // input
    double  Vbeta  = data[ 1].d; // input
-   double  Fsw    = data[ 2].d; // input parameter
-   double  F      = data[ 3].d; // input parameter
-   double  Fclk   = data[ 4].d; // input parameter
-   double  Vdc    = data[ 5].d; // input parameter
-   double &g1     = data[ 6].d; // output
-   double &g2     = data[ 7].d; // output
-   double &g3     = data[ 8].d; // output
-   double &g4     = data[ 9].d; // output
-   double &g5     = data[10].d; // output
-   double &g6     = data[11].d; // output
+   double  theta  = data[ 2].d; // input
+   double  Fsw    = data[ 3].d; // input parameter
+   double  F      = data[ 4].d; // input parameter
+   double  Fclk   = data[ 5].d; // input parameter
+   double  Vdc    = data[ 6].d; // input parameter
+   double &g1     = data[ 7].d; // output
+   double &g2     = data[ 8].d; // output
+   double &g3     = data[ 9].d; // output
+   double &g4     = data[10].d; // output
+   double &g5     = data[11].d; // output
+   double &g6     = data[12].d; // output
 
    if(!*opaque)
    {
@@ -123,7 +123,7 @@ extern "C" __declspec(dllexport) void svpwm(struct sSVPWM **opaque, double t, un
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      inst->pwm(Valpha, Vbeta, inst->theta);
+      inst->pwm(Valpha, Vbeta, theta);
 
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
 
@@ -137,11 +137,6 @@ extern "C" __declspec(dllexport) void svpwm(struct sSVPWM **opaque, double t, un
       inst->trg_c_f = inst->trg_e + (2 * inst->xpeak - inst->pwm.switchtime_c) / inst->mcu_clk;
 
       inst->trg_e   = inst->trg_e + 2 * inst->xpeak /  inst->mcu_clk;
-
-      inst->theta += PI / 100.0;
-
-      if(inst->theta >= 2 * PI)
-         inst->theta = 0.0;
    }
 
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m))

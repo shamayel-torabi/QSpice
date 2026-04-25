@@ -13,11 +13,13 @@ class DSOGI_PLL {
 public:
     DSOGI_PLL();
 
-    void init(double kp, double ki, double F){
+    void init(double Kp, double Ki, double F){
         Freq = F;
         omega = 2 * PI * Freq;
         theta = 0.0;
-        pi_controller.init(kp, ki);
+        
+        //limit omega error to 0.1 Hz
+        pi_controller.init(Kp, Ki, 2 * PI * 0.1);
     }
 
     double operator()(double Valpha, double Vbeta, double t){
@@ -29,19 +31,21 @@ public:
 
         double V_a = v_a - v_b_q;
         double V_b = v_b + v_a_q;
+        Va = V_a;
+        Vb = V_b;
 
         // Park Transformation
         double sinValue = sin(theta);
         double cosValue = cos(theta);
 
-        double Vd =  V_a * cosValue + V_b * sinValue;
-        double Vq = -V_a * sinValue + V_b * cosValue;
+        Vd =  V_a * cosValue + V_b * sinValue;
+        Vq = -V_a * sinValue + V_b * cosValue;
 
         vm = sqrt(Vd * Vd + Vq * Vq);
-        double Vin = Vd / max(vm, 1e-4);
+        double Vin = Vq / max(vm, 1e-4);
         
-        omega = pi_controller(Vin, t);
-        omega += 2 * PI * Freq;
+        omega_err = pi_controller(Vin, t);
+        omega = omega_err + 2 * PI * Freq;
         theta = integrator(omega, t);
 
         return theta;
@@ -50,6 +54,11 @@ public:
     double theta;
     double omega;
     double vm;
+    double Va;
+    double Vb;
+    double Vd;
+    double Vq;
+    double omega_err;
 
 protected:
     double Freq;
