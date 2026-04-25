@@ -156,7 +156,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->maxstep = 10e-12;
 
       inst->dsogi.init(KP_PLL, KI_PLL, F);
-      inst->dq.init(Kp, Ki, L, F);
+      inst->dq.init(Kp, Ki, L, F, 1000.0, Vdc / 2.0);
    }
    struct sDQ_INVERTOR_CONTROLLER *inst = *opaque;
 

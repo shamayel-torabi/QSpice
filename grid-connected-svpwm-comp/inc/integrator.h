@@ -13,7 +13,7 @@ public:
 
     double operator()(double error, double t){
         double Ts = (t - t_prev);
-        double output = output_prev + Ts*0.5*(error + error_prev);
+        double output = output_prev + Ts * 0.5 * (error + error_prev);
         
         if(output >= 2 * PI)
          output = 0.0;
@@ -21,6 +21,7 @@ public:
         output_prev = output;
         error_prev = error;
         t_prev = t;
+        
         return output;
     };
 

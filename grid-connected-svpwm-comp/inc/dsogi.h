@@ -13,11 +13,11 @@ class DSOGI_PLL {
 public:
     DSOGI_PLL();
 
-    void init(double K_p, double K_i, double F){
+    void init(double kp, double ki, double F){
         Freq = F;
         omega = 2 * PI * Freq;
         theta = 0.0;
-        pi_controller.init(K_p, K_i);
+        pi_controller.init(kp, ki);
     }
 
     double operator()(double Valpha, double Vbeta, double t){

@@ -1,0 +1,10 @@
+.subckt PV-Panel A K T G
+.param Kb=1.3806503E-23
+R1 P K 1m
+Bv A P I=(Isc+Ki*(T-25))*G/1000
+E1 pv A K A 1
+Bd P A I=(Isc+Ki*(T-25))/(exp((Voc+Kv*(T-25))/(1.8*Kb*T*Ns/Q))-1.0)*(exp(V(pv)/(1.8*Kb*T*Ns/Q))-1.0)
+.ends PV-Panel
+
+
+.subckt PV-Panel A K T G\n.param Kb=1.3806503E-23\nR1 P K 1m\nBv A P I=(Isc+Ki*(T-25))*G/1000\nE1 pv A K A 1\nBd P A I=(Isc+Ki*(T-25))/(exp((Voc+Kv*(T-25))/(1.8*Kb*T*Ns/Q))-1.0)*(exp(V(pv)/(1.8*Kb*T*Ns/Q))-1.0)\n.ends PV-Panel
