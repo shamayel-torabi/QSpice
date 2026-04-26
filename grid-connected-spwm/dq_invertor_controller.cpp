@@ -1,4 +1,4 @@
-// Automatically generated C++ file on Sat Apr 25 11:06:02 2026
+// Automatically generated C++ file on Fri Apr 17 07:27:10 2026
 //
 // To build with Digital Mars C++ Compiler:
 //
@@ -10,9 +10,9 @@
 #include "inc/dsogi.h"
 #include "inc/dq_controller.h"
 
-#define KP_PLL    9.20E-4
+#define KP_PLL    9.2E-4
 #define KI_PLL    42.3E-4
-
+#define PI        3.1415926535897932384626
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
 
@@ -51,9 +51,11 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Vbeta
 #undef Vq
 #undef Vd
+#undef theta
 
 struct sDQ_INVERTOR_CONTROLLER
 {
+  // declare the structure here
    uint64_t xcntr;
    double maxstep;
    double mcu_clk;
@@ -65,7 +67,6 @@ struct sDQ_INVERTOR_CONTROLLER
 
    double F;
    double Fsw;
-
    double L;
    double Vdc;
 
@@ -90,11 +91,9 @@ struct sDQ_INVERTOR_CONTROLLER
 };
 
 void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
-   double theta =  inst->dsogi(inst->Valpha, inst->Vbeta, t);
-
-   inst->theta = theta;
-   inst->sinValue = sin(theta);
-   inst->cosValue = cos(theta);
+   inst->theta = inst->dsogi(inst->Valpha, inst->Vbeta, t);;
+   inst->sinValue = sin(inst->theta);
+   inst->cosValue = cos(inst->theta);
 };
 
 void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
@@ -109,8 +108,8 @@ void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
 
    inst->dq(inst->Ids, inst->Iqs, Id, Iq, Vd, Vq, t);
 
-  inst->Vas = cosValue * inst->dq.Vds - sinValue * inst->dq.Vqs;
-  inst->Vbs = sinValue * inst->dq.Vds + cosValue * inst->dq.Vqs;
+   inst->Vas = cosValue * inst->dq.Vds - sinValue * inst->dq.Vqs;
+   inst->Vbs = sinValue * inst->dq.Vds + cosValue * inst->dq.Vqs;
 };
 
 extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR_CONTROLLER **opaque, double t, union uData *data)
@@ -134,6 +133,8 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    double &Vbeta  = data[16].d; // output
    double &Vq     = data[17].d; // output
    double &Vd     = data[18].d; // output
+   double &theta  = data[19].d; // output
+
 
    if(!*opaque)
    {
@@ -170,6 +171,9 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->Vdc = Vdc;
 
       calculate_theta(inst, t);
+
+      inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
+      inst->trg_e   = inst->trg_e + 2 * inst->xpeak /  inst->mcu_clk;
    }
 
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m))
@@ -192,6 +196,8 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    Vd = inst->dq.Vds;
    Vq = inst->dq.Vqs;
 
+   theta = inst->theta;
+
    inst->t_prev = t;
 }
 
@@ -202,7 +208,7 @@ extern "C" __declspec(dllexport) double MaxExtStepSize(struct sDQ_INVERTOR_CONTR
 
 extern "C" __declspec(dllexport) void Trunc(struct sDQ_INVERTOR_CONTROLLER *inst, double t, union uData *data, double *timestep)
 { // limit the timestep to a tolerance if the circuit causes a change in struct sDQ_INVERTOR_CONTROLLER
-   const double ttol = 10e-12; // 10ps default tolerance
+   const double ttol = 10e-12; // 1ns default tolerance
    if(*timestep > ttol)
    {
       struct sDQ_INVERTOR_CONTROLLER tmp = *inst;

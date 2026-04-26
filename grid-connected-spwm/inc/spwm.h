@@ -8,34 +8,19 @@ class SPWM {
 public:
     SPWM();
 
-    void init(double vdc, double xpeak, double m_clk){
-        Vdc = vdc;
+    void init(double xpeak){
         xPeak = xpeak;
-        Ts = 2 * xpeak / m_clk;
     }
 
-    void operator()(double valpha, double vbeta){
-        double va =  valpha;
-        double vb =  (sqrt(3.0) * vbeta -  valpha) / 2.0;
-        double vc = -(va + vb);
+    void operator()(double valpha, double vbeta){        
+        double Vref = hypotf(valpha, vbeta);
+        
+        double Valpha = valpha * 0.95 / Vref;
+        double Vbeta  = vbeta  * 0.95 / Vref;
 
-        ma = va * 2 * Ts / Vdc;
-        mb = vb * 2 * Ts / Vdc;
-        mc = vc * 2 * Ts / Vdc;
-
-        if(ma < -1.0)
-            ma = -1.0;
-        if(mb < -1.0)
-            mb = -1.0;
-        if(mc < -1.0)
-            mc = -1.0;
-
-        if(ma > 1.0)
-            ma = 1.0;
-        if(mb > 1.0)
-            mb = 1.0;
-        if(mc > 1.0)
-            mc = 1.0;
+        ma =  Valpha;
+        mb =  (sqrt(3.0) * Vbeta -  Valpha) / 2.0;
+        mc = -(ma + mb);
 
         switchtime_a = xPeak * (ma + 1.0) / 2.0;
         switchtime_b = xPeak * (mb + 1.0) / 2.0;
@@ -51,9 +36,7 @@ public:
     double mc;
 
 private:
-    double Vdc;
     double xPeak;
-    double Ts;
 };
 
 #endif  //SPWM_H
