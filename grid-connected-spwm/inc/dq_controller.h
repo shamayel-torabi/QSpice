@@ -9,9 +9,10 @@ class DQController {
 public:
     DQController();
 
-    void init(double kp, double ki, double L, double f, double limit = NOT_SET, double ramp = NOT_SET){
-        pid_d.init(kp, ki, limit, ramp);
-        pid_q.init(kp, ki, limit, ramp);
+    void init(double kp, double ki, double L, double f, double olimit = NOT_SET, double ramp = NOT_SET){
+        pid_d.init(kp, ki, olimit, ramp);
+        pid_q.init(kp, ki, olimit, ramp);
+        output_limit = olimit;
         WL = 2.0 * PI * f * L;
     }
 
@@ -24,6 +25,9 @@ public:
 
         Vds = vdk + Vd - WL * Iq;
         Vqs = vqk + Vq + WL * Id;
+        
+        Vds = _constrain(Vds, -output_limit, output_limit);
+        Vqs = _constrain(Vqs, -output_limit, output_limit);
     }
 
     double Vds;
@@ -32,6 +36,7 @@ public:
 private:
     PIController pid_d;
     PIController pid_q;
+    double output_limit;
     double WL;
 };
 
