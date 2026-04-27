@@ -12,7 +12,7 @@ public:
     void init(double kp, double ki, double L, double f, double olimit = NOT_SET, double ramp = NOT_SET){
         pid_d.init(kp, ki, olimit, ramp);
         pid_q.init(kp, ki, olimit, ramp);
-        output_limit = olimit;
+        Vmax = olimit;
         WL = 2.0 * PI * f * L;
     }
 
@@ -26,8 +26,15 @@ public:
         Vds = vdk + Vd - WL * Iq;
         Vqs = vqk + Vq + WL * Id;
         
-        Vds = _constrain(Vds, -output_limit, output_limit);
-        Vqs = _constrain(Vqs, -output_limit, output_limit);
+        double V_mag_nosat = hypotf(Vds, Vqs);
+        double V_mag = V_mag_nosat / Vmax;
+        
+        if(V_mag > 0.995){
+            V_mag = 0.995;
+        }
+
+        Vds = Vds * Vmax * V_mag / V_mag_nosat;
+        Vqs = Vqs * Vmax * V_mag / V_mag_nosat;
     }
 
     double Vds;
@@ -36,7 +43,7 @@ public:
 private:
     PIController pid_d;
     PIController pid_q;
-    double output_limit;
+    double Vmax;
     double WL;
 };
 
