@@ -25,16 +25,19 @@ public:
 
         Vds = vdk + Vd - WL * Iq;
         Vqs = vqk + Vq + WL * Id;
-        
-        double V_mag_nosat = hypotf(Vds, Vqs);
-        double V_mag = V_mag_nosat / Vmax;
-        
-        if(V_mag > 0.995){
-            V_mag = 0.995;
-        }
 
-        Vds = Vds * Vmax * V_mag / V_mag_nosat;
-        Vqs = Vqs * Vmax * V_mag / V_mag_nosat;
+        //Vds = _constrain(Vds, -Vmax , Vmax);
+        //Vqs = _constrain(Vqs, -Vmax , Vmax);
+        
+        // double V_mag_nosat = hypotf(Vds, Vqs);
+        // double V_mag = V_mag_nosat / Vmax;
+        
+        // if(V_mag > 0.995){
+        //     V_mag = 0.995;
+        // }
+
+        // Vds = Vds * Vmax * V_mag / V_mag_nosat;
+        // Vqs = Vqs * Vmax * V_mag / V_mag_nosat;
     }
 
     double Vds;

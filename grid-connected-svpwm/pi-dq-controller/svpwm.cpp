@@ -1,14 +1,12 @@
-// Automatically generated C++ file on Sat Apr 18 20:36:21 2026
+// Automatically generated C++ file on Mon Apr 20 16:05:10 2026
 //
 // To build with Digital Mars C++ Compiler:
 //
-//    dmc -mn -WD spwm_ab.cpp kernel32.lib
+//    dmc -mn -WD svpwm.cpp kernel32.lib
 
 #include <malloc.h>
 #include <inttypes.h>
-#include "inc/spwm.h"
-
-#define PI 3.1415926535897932384626
+#include "inc/svpwm.h"
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
 
@@ -34,20 +32,17 @@ union uData
 int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { return 1; }
 
 // #undef pin names lest they collide with names in any header file(s) you might include.
-#undef Va
-#undef Vb
+#undef Valpha
+#undef Vbeta
 #undef g1
 #undef g2
 #undef g3
 #undef g4
 #undef g5
 #undef g6
-#undef ma
-#undef mb
-#undef mc
+#undef theta
 
-
-struct sSPWM_AB
+struct sSVPWM
 {
    uint64_t xcntr;
    double maxstep;
@@ -77,63 +72,58 @@ struct sSPWM_AB
    double g5;
    double g6;
 
-   double theta;
-
-   SPWM pwm;
+   SVPWM pwm;
 };
 
-extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t, union uData *data)
+extern "C" __declspec(dllexport) void svpwm(struct sSVPWM **opaque, double t, union uData *data)
 {
-   double  Va   = data[ 0].d; // input
-   double  Vb   = data[ 1].d; // input
-   double  Fsw  = data[ 2].d; // input parameter
-   double  F    = data[ 3].d; // input parameter
-   double  Fclk = data[ 4].d; // input parameter
-   double  Vdc  = data[ 5].d; // input parameter
-   double &g1   = data[ 6].d; // output
-   double &g2   = data[ 7].d; // output
-   double &g3   = data[ 8].d; // output
-   double &g4   = data[ 9].d; // output
-   double &g5   = data[10].d; // output
-   double &g6   = data[11].d; // output
-   double &ma   = data[12].d; // output
-   double &mb   = data[13].d; // output
-   double &mc   = data[14].d; // output
+   double  Valpha = data[ 0].d; // input
+   double  Vbeta  = data[ 1].d; // input
+   double  theta  = data[ 2].d; // input
+   double  Fsw    = data[ 3].d; // input parameter
+   double  F      = data[ 4].d; // input parameter
+   double  Fclk   = data[ 5].d; // input parameter
+   double  Vdc    = data[ 6].d; // input parameter
+   double &g1     = data[ 7].d; // output
+   double &g2     = data[ 8].d; // output
+   double &g3     = data[ 9].d; // output
+   double &g4     = data[10].d; // output
+   double &g5     = data[11].d; // output
+   double &g6     = data[12].d; // output
 
    if(!*opaque)
    {
-      *opaque = (struct sSPWM_AB *) malloc(sizeof(struct sSPWM_AB));
-      bzero(*opaque, sizeof(struct sSPWM_AB));
+      *opaque = (struct sSVPWM *) malloc(sizeof(struct sSVPWM));
+      bzero(*opaque, sizeof(struct sSVPWM));
 
-      struct sSPWM_AB *inst = *opaque;
+      struct sSVPWM *inst = *opaque;
 
       inst->Fsw = Fsw;
       inst->F = F;
       inst->mcu_clk = Fclk;
       inst->xpeak = Fclk / (2 * Fsw);
 
-      inst->pwm.init(Vdc, inst->xpeak);
+      inst->pwm.init(Vdc, inst->xpeak, inst->mcu_clk);
 
-      inst->g1 = 0.0;
-      inst->g2 = 0.0;
-      inst->g3 = 0.0;
-      inst->g4 = 0.0;
-      inst->g5 = 0.0;
-      inst->g6 = 0.0;
+      inst->g1 = -7.0;
+      inst->g2 = -7.0;
+      inst->g3 = -7.0;
+      inst->g4 = -7.0;
+      inst->g5 = -7.0;
+      inst->g6 = -7.0;
 
       inst->trg_e = 0.0;
       inst->trg_m = inst->xpeak / inst->mcu_clk;
-
       inst->maxstep = 10e-12;
    }
-   struct sSPWM_AB *inst = *opaque;
+   struct sSVPWM *inst = *opaque;
 
 // Implement module evaluation code here:
    if((inst->t_prev <= inst->trg_e)&&(t >= inst->trg_e)){
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      inst->pwm(Va, Vb);
+      inst->pwm(Valpha, Vbeta, theta);
 
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
 
@@ -147,11 +137,6 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
       inst->trg_c_f = inst->trg_e + (2 * inst->xpeak - inst->pwm.switchtime_c) / inst->mcu_clk;
 
       inst->trg_e   = inst->trg_e + 2 * inst->xpeak /  inst->mcu_clk;
-
-      inst->theta += PI / 100.0;
-
-      if(inst->theta >= 2 * PI)
-         inst->theta = 0.0;
    }
 
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m))
@@ -164,74 +149,70 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
       {
          inst->xcntr++;
          inst->g1 =  15.0;
-         inst->g2 = 0.0;
+         inst->g2 = -7.0;
       }
       if((inst->t_prev <= inst->trg_b_r)&&(t >= inst->trg_b_r))
       {
          inst->xcntr++;
          inst->g3 =  15.0;
-         inst->g4 = 0.0;
+         inst->g4 = -7.0;
       }
       if((inst->t_prev <= inst->trg_c_r)&&(t >= inst->trg_c_r))
       {
          inst->xcntr++;
          inst->g5 =  15.0;
-         inst->g6 = 0.0;
+         inst->g6 = -7.0;
       }
    }
    else{
       if((inst->t_prev <= inst->trg_a_f)&&(t >= inst->trg_a_f))
       {
          inst->xcntr++;
-         inst->g1 = 0.0;
+         inst->g1 = -7.0;
          inst->g2 =  15.0;
       }
       if((inst->t_prev <= inst->trg_b_f)&&(t >= inst->trg_b_f))
       {
          inst->xcntr++;
-         inst->g3 = 0.0;
+         inst->g3 = -7.0;
          inst->g4 =  15.0;
       }
       if((inst->t_prev <= inst->trg_c_f)&&(t >= inst->trg_c_f))
       {
          inst->xcntr++;
-         inst->g5 = 0.0;
+         inst->g5 = -7.0;
          inst->g6 =  15.0;
       }
    }
 
-   g1 = inst->g2 - inst->g1;
-   g2 = inst->g1 - inst->g2;
-   g3 = inst->g4 - inst->g3;
-   g4 = inst->g3 - inst->g4;
-   g5 = inst->g6 - inst->g5;
-   g6 = inst->g5 - inst->g6;
-
-   ma = inst->pwm.ma;
-   mb = inst->pwm.mb;
-   mc = inst->pwm.mc;
+   g1 = inst->g1;
+   g2 = inst->g2;
+   g3 = inst->g3;
+   g4 = inst->g4;
+   g5 = inst->g5;
+   g6 = inst->g6;
 
    inst->t_prev = t;
 }
 
-extern "C" __declspec(dllexport) double MaxExtStepSize(struct sSPWM_AB *inst, double t)
+extern "C" __declspec(dllexport) double MaxExtStepSize(struct sSVPWM *inst, double t)
 {
    return inst->maxstep; // implement a good choice of max timestep size that depends on struct sSVPWM
 }
 
-extern "C" __declspec(dllexport) void Trunc(struct sSPWM_AB *inst, double t, union uData *data, double *timestep)
-{ // limit the timestep to a tolerance if the circuit causes a change in struct sSPWM_AB
+extern "C" __declspec(dllexport) void Trunc(struct sSVPWM *inst, double t, union uData *data, double *timestep)
+{ // limit the timestep to a tolerance if the circuit causes a change in struct sSVPWM
    const double ttol = 1e-9; // 1ns default tolerance
    if(*timestep > ttol)
    {
-      struct sSPWM_AB tmp = *inst;
-      spwm_ab(&(&tmp), t, data);
+      struct sSVPWM tmp = *inst;
+      svpwm(&(&tmp), t, data);
       if(tmp.xcntr != inst->xcntr) // implement a meaningful way to detect if the state has changed
          *timestep = ttol;
    }
 }
 
-extern "C" __declspec(dllexport) void Destroy(struct sSPWM_AB *inst)
+extern "C" __declspec(dllexport) void Destroy(struct sSVPWM *inst)
 {
    free(inst);
 }

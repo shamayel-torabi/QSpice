@@ -1,4 +1,4 @@
-// Automatically generated C++ file on Sat Apr 18 20:36:21 2026
+// Automatically generated C++ file on Mon Apr 27 15:19:34 2026
 //
 // To build with Digital Mars C++ Compiler:
 //
@@ -34,8 +34,8 @@ union uData
 int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { return 1; }
 
 // #undef pin names lest they collide with names in any header file(s) you might include.
-#undef Valpha
-#undef Vbeta
+#undef Vq
+#undef Vd
 #undef g1
 #undef g2
 #undef g3
@@ -45,7 +45,6 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef ma
 #undef mb
 #undef mc
-
 
 struct sSPWM_AB
 {
@@ -76,6 +75,7 @@ struct sSPWM_AB
    bool g5;
    bool g6;
 
+   uint16_t counter;
    double theta;
 
    SPWM pwm;
@@ -83,19 +83,19 @@ struct sSPWM_AB
 
 extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t, union uData *data)
 {
-   double  Valpha = data[ 0].d; // input
-   double  Vbeta  = data[ 1].d; // input
-   double  Fsw    = data[ 2].d; // input parameter
-   double  Fclk   = data[ 3].d; // input parameter
-   double &g1     = data[ 4].d; // output
-   double &g2     = data[ 5].d; // output
-   double &g3     = data[ 6].d; // output
-   double &g4     = data[ 7].d; // output
-   double &g5     = data[ 8].d; // output
-   double &g6     = data[ 9].d; // output
-   double &ma     = data[10].d; // output
-   double &mb     = data[11].d; // output
-   double &mc     = data[12].d; // output
+   double  Vq   = data[ 0].d; // input
+   double  Vd   = data[ 1].d; // input
+   double  Fsw  = data[ 2].d; // input parameter
+   double  Fclk = data[ 3].d; // input parameter
+   double &g1   = data[ 4].d; // output
+   double &g2   = data[ 5].d; // output
+   double &g3   = data[ 6].d; // output
+   double &g4   = data[ 7].d; // output
+   double &g5   = data[ 8].d; // output
+   double &g6   = data[ 9].d; // output
+   double &ma   = data[10].d; // output
+   double &mb   = data[11].d; // output
+   double &mc   = data[12].d; // output
 
    if(!*opaque)
    {
@@ -129,7 +129,7 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      inst->pwm(Valpha, Vbeta, inst->theta);
+      inst->pwm(Vd, Vq, inst->theta);
 
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
 
@@ -144,10 +144,11 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
 
       inst->trg_e   = inst->trg_e + 2 * inst->xpeak /  inst->mcu_clk;
 
-      inst->theta += PI / 100.0;
+      inst->counter++;
+      if(inst->counter == 200)
+         inst->counter = 0;
 
-      if(inst->theta >= 2 * PI)
-         inst->theta = 0.0;
+      inst->theta = inst->counter * PI / 100;
    }
 
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m))
@@ -198,16 +199,17 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
 
    g1 = (inst->g1) ? 15.0 : -7.0;
    g2 = (inst->g2) ? 15.0 : -7.0;
-   g3 = (inst->g5) ? 15.0 : -7.0;
-   g4 = (inst->g6) ? 15.0 : -7.0;
-   g5 = (inst->g3) ? 15.0 : -7.0;
-   g6 = (inst->g4) ? 15.0 : -7.0;
+   g3 = (inst->g3) ? 15.0 : -7.0;
+   g4 = (inst->g4) ? 15.0 : -7.0;
+   g5 = (inst->g5) ? 15.0 : -7.0;
+   g6 = (inst->g6) ? 15.0 : -7.0;
 
    ma = inst->pwm.ma;
    mb = inst->pwm.mb;
    mc = inst->pwm.mc;
 
    inst->t_prev = t;
+
 }
 
 extern "C" __declspec(dllexport) double MaxExtStepSize(struct sSPWM_AB *inst, double t)
