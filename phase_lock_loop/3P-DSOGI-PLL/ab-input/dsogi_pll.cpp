@@ -1,11 +1,12 @@
-// Automatically generated C++ file on Mon Apr 13 17:10:43 2026
+// Automatically generated C++ file on Wed Apr 29 07:02:17 2026
 //
-// To build with Digital Mars C++ Compiler:
+// To build with Digital Mars C++ Compiler: 
 //
 //    dmc -mn -WD dsogi_pll.cpp kernel32.lib
 
 #include <malloc.h>
 #include <math.h>
+#include <inttypes.h>
 #include "inc/dsogi.h"
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
@@ -35,12 +36,21 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Valpha
 #undef Vbeta
 #undef theta
-#undef clk
+#undef werr
 
 struct sDSOGI_PLL
 {
-  // declare the structure here
-   bool   last_clk;
+   uint64_t xcntr;
+   double maxstep;
+   double mcu_clk;
+   double xpeak;
+   double t_prev;
+
+   double trg_e;   // trigger at start period
+   double trg_m;   // trigger at half period
+
+   double F;
+   double Fsw;
 
    double theta;
    DSOGI_PLL dsogi;
@@ -50,11 +60,13 @@ extern "C" __declspec(dllexport) void dsogi_pll(struct sDSOGI_PLL **opaque, doub
 {
    double  Valpha = data[0].d; // input
    double  Vbeta  = data[1].d; // input
-   bool    clk    = data[2].b; // input
-   double  Kp     = data[3].d; // input parameter
-   double  Ki     = data[4].d; // input parameter
-   double  Freq   = data[5].d; // input parameter
-   double &theta  = data[6].d; // output
+   double  Kp     = data[2].d; // input parameter
+   double  Ki     = data[3].d; // input parameter
+   double  Freq   = data[4].d; // input parameter
+   double  Fs     = data[5].d; // input parameter
+   double  Fclk   = data[6].d; // input parameter
+   double &theta  = data[7].d; // output
+   double &werr   = data[8].d; // output
 
    if(!*opaque)
    {
@@ -62,19 +74,46 @@ extern "C" __declspec(dllexport) void dsogi_pll(struct sDSOGI_PLL **opaque, doub
       bzero(*opaque, sizeof(struct sDSOGI_PLL));
 
       struct sDSOGI_PLL *inst = *opaque;
+
+      inst->Fsw = Fs;
+      inst->F = Freq;
+
+      inst->mcu_clk = Fclk;
+      inst->xpeak = Fclk / (2 * Fs);
+
+      inst->trg_e = 0.0;
+      inst->trg_m = inst->xpeak / inst->mcu_clk;
+
+      inst->maxstep = 10e-12;
+
       inst->dsogi.init(Kp, Ki, Freq);
    }
    struct sDSOGI_PLL *inst = *opaque;
 
 // Implement module evaluation code here:
-   if (clk && !inst->last_clk)
-   {
-      double thta = inst->dsogi(Valpha, Vbeta, t);
-      inst->theta = thta;
+   if((inst->t_prev <= inst->trg_e)&&(t >= inst->trg_e)){
+      inst->xcntr++;
+      inst->maxstep = inst->xpeak / inst->mcu_clk;
+
+      inst->dsogi(Valpha, Vbeta, t);
+
+      inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
+      inst->trg_e   = inst->trg_e + 2 * inst->xpeak /  inst->mcu_clk;
    }
 
-   inst->last_clk = clk;
-   theta = inst->theta;
+   if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m))
+   {
+      inst->xcntr++;
+   }
+
+   theta = inst->dsogi.theta;
+   werr  = inst->dsogi.omega_err;
+   inst->t_prev = t;
+}
+
+extern "C" __declspec(dllexport) double MaxExtStepSize(struct sDSOGI_PLL *inst, double t)
+{
+   return inst->maxstep; // implement a good choice of max timestep size that depends on struct sSVPWM
 }
 
 extern "C" __declspec(dllexport) void Trunc(struct sDSOGI_PLL *inst, double t, union uData *data, double *timestep)
@@ -84,7 +123,7 @@ extern "C" __declspec(dllexport) void Trunc(struct sDSOGI_PLL *inst, double t, u
    {
       struct sDSOGI_PLL tmp = *inst;
       dsogi_pll(&(&tmp), t, data);
-      if(tmp.last_clk != inst->last_clk & !inst->last_clk)  // clock rising edge reduce timestep to TTOL
+      if(tmp.xcntr != inst->xcntr) // implement a meaningful way to detect if the state has changed
          *timestep = ttol;
    }
 }

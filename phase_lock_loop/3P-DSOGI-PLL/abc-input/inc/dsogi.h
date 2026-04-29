@@ -45,7 +45,7 @@ public:
         double Vq = -V_a * sinValue + V_b * cosValue;
 
         vm = sqrt(Vd * Vd + Vq * Vq);
-        double Vin = Vd / max(vm, 1e-4);
+        double Vin = Vq / max(vm, 1e-4);
         
         omega = pi_controller(Vin, t);
         omega += 2 * PI * Freq;

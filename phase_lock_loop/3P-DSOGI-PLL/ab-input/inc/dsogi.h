@@ -17,11 +17,11 @@ class DSOGI_PLL {
 public:
     DSOGI_PLL();
 
-    void init(double K_p, double K_i, double F){
+    void init(double Kp, double Ki, double F){
         Freq = F;
-        omega = 2 * PI * Freq;
+        omega = 2 * PI * F;
         theta = 0.0;
-        pi_controller.init(K_p, K_i);
+        pi_controller.init(Kp, Ki, 2 * PI);
     }
 
     double operator()(double Valpha, double Vbeta, double t){
@@ -42,15 +42,18 @@ public:
         double Vq = -V_a * sinValue + V_b * cosValue;
 
         vm = sqrt(Vd * Vd + Vq * Vq);
-        double Vin = Vd / max(vm, 1e-4);
+        double v = Vq / max(vm, 1e-4);
         
-        omega = pi_controller(Vin, t);
-        omega += 2 * PI * Freq;
+        omega_err = pi_controller(v, t);
+        omega = omega_err + 2 * PI * Freq;
         theta = integrator(omega, t);
+
+        return theta;
     };
 
     double theta;
     double omega;
+    double omega_err;
     double vm;
 
 protected:
