@@ -19,7 +19,7 @@ public:
         theta = 0.0;
         
         //limit omega error to 0.1 Hz
-        pi_controller.init(Kp, Ki, 2 * PI * 1.0);
+        pi_controller.init(Kp, Ki, 2 * PI * 0.1);
     }
 
     double operator()(double Valpha, double Vbeta, double t){

@@ -91,7 +91,7 @@ struct sDQ_INVERTOR_CONTROLLER
 };
 
 void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
-   inst->theta = inst->dsogi(inst->Valpha, inst->Vbeta, t);
+   inst->theta = inst->dsogi(inst->Valpha, inst->Vbeta, t);;
    inst->sinValue = sin(inst->theta);
    inst->cosValue = cos(inst->theta);
 };
@@ -108,8 +108,8 @@ void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
 
    inst->dq(inst->Ids, inst->Iqs, Id, Iq, Vd, Vq, t);
 
-   inst->Vas = cosValue * inst->dq.Vd - sinValue * inst->dq.Vq;
-   inst->Vbs = sinValue * inst->dq.Vd + cosValue * inst->dq.Vq;
+   inst->Vas = cosValue * inst->dq.Vds - sinValue * inst->dq.Vqs;
+   inst->Vbs = sinValue * inst->dq.Vds + cosValue * inst->dq.Vqs;
 };
 
 extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR_CONTROLLER **opaque, double t, union uData *data)
@@ -156,7 +156,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->maxstep = 10e-12;
 
       inst->dsogi.init(KP_PLL, KI_PLL, F);
-      inst->dq.init(Kp, Ki, 2 * PI * F * L);
+      inst->dq.init(Kp, Ki, L, F, Vdc, 100.0);
    }
    struct sDQ_INVERTOR_CONTROLLER *inst = *opaque;
 
@@ -164,6 +164,11 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    if((inst->t_prev <= inst->trg_e)&&(t >= inst->trg_e)){
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
+
+      // sample voltage
+      inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
+      inst->Vdc = Vdc;
 
       calculate_theta(inst, t);
 
@@ -175,12 +180,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    {
       inst->xcntr++;
 
-      // sample current and voltage
-      inst->Vdc = Vdc;
-
-      inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
-      inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
-
+      // sample current
       inst->Ialpha = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
       inst->Ibeta  = sqrt(3.0) * (Ic - Ib) / 3.0;
 
@@ -193,8 +193,8 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    Valpha = inst->Vas;
    Vbeta  = inst->Vbs;
 
-   Vd = inst->dq.Vd;
-   Vq = inst->dq.Vq;
+   Vd = inst->dq.Vds;
+   Vq = inst->dq.Vqs;
 
    theta = inst->theta;
 

@@ -8,10 +8,9 @@ class DQController {
 public:
     DQController();
 
-    void init(double kp, double ki, double vdc, double wl){
+    void init(double kp, double ki, double wl){
         Kp = kp;
         Ki = ki;
-        Vmax = vdc / sqrt(3.0);
         WL = wl;
     }
 
