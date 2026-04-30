@@ -10,8 +10,8 @@
 #include "inc/dsogi.h"
 #include "inc/dq_controller.h"
 
-#define KP_PLL    9.2E-4
-#define KI_PLL    42.3E-4
+#define KP_PLL    9.2
+#define KI_PLL    42.3
 #define PI        3.1415926535897932384626
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
