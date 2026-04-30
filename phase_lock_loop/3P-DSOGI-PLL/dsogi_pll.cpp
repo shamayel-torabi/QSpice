@@ -1,6 +1,6 @@
 // Automatically generated C++ file on Wed Apr 29 07:02:17 2026
 //
-// To build with Digital Mars C++ Compiler: 
+// To build with Digital Mars C++ Compiler:
 //
 //    dmc -mn -WD dsogi_pll.cpp kernel32.lib
 
@@ -37,6 +37,8 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Vbeta
 #undef theta
 #undef werr
+#undef Vd
+#undef Vq
 
 struct sDSOGI_PLL
 {
@@ -58,15 +60,17 @@ struct sDSOGI_PLL
 
 extern "C" __declspec(dllexport) void dsogi_pll(struct sDSOGI_PLL **opaque, double t, union uData *data)
 {
-   double  Valpha = data[0].d; // input
-   double  Vbeta  = data[1].d; // input
-   double  Kp     = data[2].d; // input parameter
-   double  Ki     = data[3].d; // input parameter
-   double  Freq   = data[4].d; // input parameter
-   double  Fs     = data[5].d; // input parameter
-   double  Fclk   = data[6].d; // input parameter
-   double &theta  = data[7].d; // output
-   double &werr   = data[8].d; // output
+   double  Valpha = data[ 0].d; // input
+   double  Vbeta  = data[ 1].d; // input
+   double  Kp     = data[ 2].d; // input parameter
+   double  Ki     = data[ 3].d; // input parameter
+   double  Freq   = data[ 4].d; // input parameter
+   double  Fs     = data[ 5].d; // input parameter
+   double  Fclk   = data[ 6].d; // input parameter
+   double &theta  = data[ 7].d; // output
+   double &werr   = data[ 8].d; // output
+   double &Vd     = data[ 9].d; // output
+   double &Vq     = data[10].d; // output
 
    if(!*opaque)
    {
@@ -108,6 +112,8 @@ extern "C" __declspec(dllexport) void dsogi_pll(struct sDSOGI_PLL **opaque, doub
 
    theta = inst->dsogi.theta;
    werr  = inst->dsogi.omega_err;
+   Vd    = inst->dsogi.Vd;
+   Vq    = inst->dsogi.Vq;
    inst->t_prev = t;
 }
 
