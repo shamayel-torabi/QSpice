@@ -76,6 +76,12 @@ struct sDQ_INVERTOR_CONTROLLER
    double Ialpha;
    double Ibeta;
 
+   double Ialpha_k_1;
+   double Ibeta_k_1;
+
+   double Ialpha_k_2;
+   double Ibeta_k_2;
+
    double Vas;
    double Vbs;
 
@@ -156,7 +162,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->maxstep = 10e-12;
 
       inst->dsogi.init(KP_PLL, KI_PLL, F);
-      inst->dq.init(Kp, Ki, 2 * PI * F * L);
+      inst->dq.init(Kp, Ki, 2 * PI * F * L, Vdc / 2.0);
    }
    struct sDQ_INVERTOR_CONTROLLER *inst = *opaque;
 
@@ -167,6 +173,29 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
 
       calculate_theta(inst, t);
 
+      // current control routine start;
+      inst->Vdc = Vdc;
+
+      inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
+
+      inst->Ids = Ids;
+      inst->Iqs = Iqs;
+
+      double Ialpha = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
+      double Ibeta  = sqrt(3.0) * (Ic - Ib) / 3.0;
+
+      inst-> Ialpha = (Ialpha + inst->Ialpha_k_1 + inst->Ialpha_k_2) / 4.0;
+      inst->Ialpha_k_2 = inst->Ialpha_k_1;
+      inst->Ialpha_k_1 = Ialpha;
+
+      inst-> Ibeta  = (Ibeta  + inst->Ibeta_k_1  + inst->Ibeta_k_2) / 4.0;
+      inst->Ibeta_k_2 = inst->Ibeta_k_1;
+      inst->Ibeta_k_1 = Ibeta;
+
+      dq_controller(inst, t);
+      //current control routine stop
+
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
       inst->trg_e   = inst->trg_e + 2 * inst->xpeak /  inst->mcu_clk;
    }
@@ -175,19 +204,28 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    {
       inst->xcntr++;
 
-      // sample current and voltage
+      // current control routine start;
       inst->Vdc = Vdc;
 
       inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
-      inst->Ialpha = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
-      inst->Ibeta  = sqrt(3.0) * (Ic - Ib) / 3.0;
-
       inst->Ids = Ids;
       inst->Iqs = Iqs;
 
+      double Ialpha = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
+      double Ibeta  = sqrt(3.0) * (Ic - Ib) / 3.0;
+
+      inst-> Ialpha = (Ialpha + inst->Ialpha_k_1 + inst->Ialpha_k_2) / 4.0;
+      inst->Ialpha_k_2 = inst->Ialpha_k_1;
+      inst->Ialpha_k_1 = Ialpha;
+
+      inst-> Ibeta  = (Ibeta  + inst->Ibeta_k_1  + inst->Ibeta_k_2) / 4.0;
+      inst->Ibeta_k_2 = inst->Ibeta_k_1;
+      inst->Ibeta_k_1 = Ibeta;
+
       dq_controller(inst, t);
+      //current control routine stop
    }
 
    Valpha = inst->Vas;
