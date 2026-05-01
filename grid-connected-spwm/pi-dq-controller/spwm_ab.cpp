@@ -42,6 +42,7 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef g4
 #undef g5
 #undef g6
+#undef theta
 
 
 struct sSPWM_AB
@@ -82,15 +83,16 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
 {
    double  Valpha = data[ 0].d; // input
    double  Vbeta  = data[ 1].d; // input
-   double  Fsw    = data[ 2].d; // input parameter
-   double  Fclk   = data[ 3].d; // input parameter
-   double  Vdc    = data[ 4].d; // input parameter
-   double &g1     = data[ 5].d; // output
-   double &g2     = data[ 6].d; // output
-   double &g3     = data[ 7].d; // output
-   double &g4     = data[ 8].d; // output
-   double &g5     = data[ 9].d; // output
-   double &g6     = data[10].d; // output
+   double  theta  = data[ 2].d; // input
+   double  Fsw    = data[ 3].d; // input parameter
+   double  Fclk   = data[ 4].d; // input parameter
+   double  Vdc    = data[ 5].d; // input parameter
+   double &g1     = data[ 6].d; // output
+   double &g2     = data[ 7].d; // output
+   double &g3     = data[ 8].d; // output
+   double &g4     = data[ 9].d; // output
+   double &g5     = data[10].d; // output
+   double &g6     = data[11].d; // output
 
    if(!*opaque)
    {
@@ -103,7 +105,7 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
       inst->mcu_clk = Fclk;
       inst->xpeak = Fclk / (2 * Fsw);
 
-      inst->pwm.init(680.0, inst->xpeak);
+      inst->pwm.init(Vdc, inst->xpeak);
 
       inst->g1 = false;
       inst->g2 = false;
@@ -124,7 +126,7 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      inst->pwm(Valpha, Vbeta);
+      inst->pwm(Valpha, Vbeta, theta);
 
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
 
@@ -201,10 +203,10 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
 
    g1 = (inst->g1) ? -7.0 :15.0;
    g2 = (inst->g2) ? -7.0 :15.0;
-   g3 = (inst->g5) ? -7.0 :15.0;
-   g4 = (inst->g6) ? -7.0 :15.0;
-   g5 = (inst->g3) ? -7.0 :15.0;
-   g6 = (inst->g4) ? -7.0 :15.0;
+   g3 = (inst->g3) ? -7.0 :15.0;
+   g4 = (inst->g4) ? -7.0 :15.0;
+   g5 = (inst->g5) ? -7.0 :15.0;
+   g6 = (inst->g6) ? -7.0 :15.0;
 
    inst->t_prev = t;
 }

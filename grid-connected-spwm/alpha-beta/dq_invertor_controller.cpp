@@ -1,4 +1,4 @@
-// Automatically generated C++ file on Fri Apr 17 07:27:10 2026
+// Automatically generated C++ file on Sat Apr 25 11:06:02 2026
 //
 // To build with Digital Mars C++ Compiler:
 //
@@ -10,9 +10,9 @@
 #include "inc/dsogi.h"
 #include "inc/dq_controller.h"
 
-#define KP_PLL    9.2E-4
-#define KI_PLL    42.3E-4
-#define PI        3.1415926535897932384626
+#define KP_PLL    92
+#define KI_PLL    4230
+
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
 
@@ -41,21 +41,19 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Va
 #undef Vb
 #undef Vc
-#undef Ia
-#undef Ib
 #undef Ic
+#undef Ib
+#undef Ia
 #undef Ids
 #undef Iqs
 #undef Vdc
-#undef theta
-#undef Vd
-#undef Vq
 #undef Valpha
 #undef Vbeta
+#undef Vq
+#undef Vd
 
 struct sDQ_INVERTOR_CONTROLLER
 {
-  // declare the structure here
    uint64_t xcntr;
    double maxstep;
    double mcu_clk;
@@ -67,6 +65,7 @@ struct sDQ_INVERTOR_CONTROLLER
 
    double F;
    double Fsw;
+
    double L;
    double Vdc;
 
@@ -76,8 +75,8 @@ struct sDQ_INVERTOR_CONTROLLER
    double Ialpha;
    double Ibeta;
 
-   double Vas;
-   double Vbs;
+   double Var;
+   double Vbr;
 
    double Ids;
    double Iqs;
@@ -91,9 +90,11 @@ struct sDQ_INVERTOR_CONTROLLER
 };
 
 void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
-   inst->theta = inst->dsogi(inst->Valpha, inst->Vbeta, t);
-   inst->sinValue = sin(inst->theta);
-   inst->cosValue = cos(inst->theta);
+   double theta =  inst->dsogi(inst->Valpha, inst->Vbeta, t);
+
+   inst->theta = theta;
+   inst->sinValue = sin(theta);
+   inst->cosValue = cos(theta);
 };
 
 void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
@@ -108,21 +109,8 @@ void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
 
    inst->dq(inst->Ids, inst->Iqs, Id, Iq, Vd, Vq, t);
 
-   double Valpha = cosValue * inst->dq.Vds - sinValue * inst->dq.Vqs;
-   double Vbeta  = sinValue * inst->dq.Vds + cosValue * inst->dq.Vqs;
-
-   // double V_mag_nosat = hypotf(Valpha, Vbeta);
-   // double V_mag = V_mag_nosat * 2.0 / inst->Vdc;
-
-   // if(V_mag > 1.0){
-   //    V_mag = 1.0;
-   // }
-
-   // Valpha =  V_mag * Valpha / V_mag_nosat;
-   // Vbeta  =  V_mag * Vbeta  / V_mag_nosat;
-
-   inst->Vas = Valpha;
-   inst->Vbs = Vbeta;
+   inst->Var = cosValue * inst->dq.Vd - sinValue * inst->dq.Vq;
+   inst->Vbr = sinValue * inst->dq.Vd + cosValue * inst->dq.Vq;
 };
 
 extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR_CONTROLLER **opaque, double t, union uData *data)
@@ -130,9 +118,9 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    double  Va     = data[ 0].d; // input
    double  Vb     = data[ 1].d; // input
    double  Vc     = data[ 2].d; // input
-   double  Ia     = data[ 3].d; // input
+   double  Ic     = data[ 3].d; // input
    double  Ib     = data[ 4].d; // input
-   double  Ic     = data[ 5].d; // input
+   double  Ia     = data[ 5].d; // input
    double  Ids    = data[ 6].d; // input
    double  Iqs    = data[ 7].d; // input
    double  Vdc    = data[ 8].d; // input
@@ -142,12 +130,10 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    double  Kp     = data[12].d; // input parameter
    double  Ki     = data[13].d; // input parameter
    double  Fclk   = data[14].d; // input parameter
-   double &theta  = data[15].d; // output
-   double &Vd     = data[16].d; // output
+   double &Valpha = data[15].d; // output
+   double &Vbeta  = data[16].d; // output
    double &Vq     = data[17].d; // output
-   double &Valpha = data[18].d; // output
-   double &Vbeta  = data[19].d; // output
-
+   double &Vd     = data[18].d; // output
 
    if(!*opaque)
    {
@@ -169,7 +155,8 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->maxstep = 10e-12;
 
       inst->dsogi.init(KP_PLL, KI_PLL, F);
-      inst->dq.init(Kp, Ki, L, F, Vdc / 2.0, 10.0);
+      double wl = 2 * PI * F * L;
+      inst->dq.init(Kp, Ki, wl);
    }
    struct sDQ_INVERTOR_CONTROLLER *inst = *opaque;
 
@@ -178,38 +165,40 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      // sample voltage
+      // sample
       inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
+      inst->Ialpha = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
+      inst->Ibeta  = sqrt(3.0) * (Ic - Ib) / 3.0;
+      inst->Ids = Ids;
+      inst->Iqs = Iqs;
       inst->Vdc = Vdc;
 
       calculate_theta(inst, t);
-
-      inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
-      inst->trg_e   = inst->trg_e + 2 * inst->xpeak /  inst->mcu_clk;
+      dq_controller(inst, t);
    }
 
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m))
    {
       inst->xcntr++;
 
-      // sample current
+      // sample
+      inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
       inst->Ialpha = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
       inst->Ibeta  = sqrt(3.0) * (Ic - Ib) / 3.0;
-
       inst->Ids = Ids;
       inst->Iqs = Iqs;
+      inst->Vdc = Vdc;
 
       dq_controller(inst, t);
    }
 
-   Valpha = inst->Vas;
-   Vbeta  = inst->Vbs;
+   Valpha = inst->Var;
+   Vbeta  = inst->Vbr;
 
-   Vd = inst->dq.Vds;
-   Vq = inst->dq.Vqs;
-
-   theta = inst->theta;
+   Vd = inst->dq.Vd;
+   Vq = inst->dq.Vq;
 
    inst->t_prev = t;
 }
@@ -221,7 +210,7 @@ extern "C" __declspec(dllexport) double MaxExtStepSize(struct sDQ_INVERTOR_CONTR
 
 extern "C" __declspec(dllexport) void Trunc(struct sDQ_INVERTOR_CONTROLLER *inst, double t, union uData *data, double *timestep)
 { // limit the timestep to a tolerance if the circuit causes a change in struct sDQ_INVERTOR_CONTROLLER
-   const double ttol = 10e-12; // 1ns default tolerance
+   const double ttol = 10e-12; // 10ps default tolerance
    if(*timestep > ttol)
    {
       struct sDQ_INVERTOR_CONTROLLER tmp = *inst;
