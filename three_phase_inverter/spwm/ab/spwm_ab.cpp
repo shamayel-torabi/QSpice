@@ -129,7 +129,7 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      inst->pwm(Valpha, Vbeta, inst->theta);
+      inst->pwm(Valpha, Vbeta);
 
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
 
@@ -196,12 +196,21 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
       }
    }
 
-   g1 = (inst->g1) ? 15.0 : -7.0;
-   g2 = (inst->g2) ? 15.0 : -7.0;
-   g3 = (inst->g5) ? 15.0 : -7.0;
-   g4 = (inst->g6) ? 15.0 : -7.0;
-   g5 = (inst->g3) ? 15.0 : -7.0;
-   g6 = (inst->g4) ? 15.0 : -7.0;
+
+   g1 = (inst->g1) ? -7.0 :15.0;
+   g2 = (inst->g2) ? -7.0 :15.0;
+   g3 = (inst->g5) ? -7.0 :15.0;
+   g4 = (inst->g6) ? -7.0 :15.0;
+   g5 = (inst->g3) ? -7.0 :15.0;
+   g6 = (inst->g4) ? -7.0 :15.0;
+
+
+   // g1 = (inst->g1) ? 15.0 : -7.0;
+   // g2 = (inst->g2) ? 15.0 : -7.0;
+   // g3 = (inst->g3) ? 15.0 : -7.0;
+   // g4 = (inst->g4) ? 15.0 : -7.0;
+   // g5 = (inst->g5) ? 15.0 : -7.0;
+   // g6 = (inst->g6) ? 15.0 : -7.0;
 
    ma = inst->pwm.ma;
    mb = inst->pwm.mb;

@@ -10,8 +10,8 @@
 #include "inc/dsogi.h"
 #include "inc/dq_controller.h"
 
-#define KP_PLL    9.2E-4
-#define KI_PLL    42.3E-4
+#define KP_PLL    92
+#define KI_PLL    4230
 #define PI        3.1415926535897932384626
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
@@ -76,6 +76,12 @@ struct sDQ_INVERTOR_CONTROLLER
    double Ialpha;
    double Ibeta;
 
+   double Ialpha_k_1;
+   double Ibeta_k_1;
+
+   double Ialpha_k_2;
+   double Ibeta_k_2;
+
    double Vas;
    double Vbs;
 
@@ -91,7 +97,7 @@ struct sDQ_INVERTOR_CONTROLLER
 };
 
 void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
-   inst->theta = inst->dsogi(inst->Valpha, inst->Vbeta, t);;
+   inst->theta = inst->dsogi(inst->Valpha, inst->Vbeta, t);
    inst->sinValue = sin(inst->theta);
    inst->cosValue = cos(inst->theta);
 };
@@ -108,8 +114,8 @@ void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
 
    inst->dq(inst->Ids, inst->Iqs, Id, Iq, Vd, Vq, t);
 
-   inst->Vas = cosValue * inst->dq.Vds - sinValue * inst->dq.Vqs;
-   inst->Vbs = sinValue * inst->dq.Vds + cosValue * inst->dq.Vqs;
+   inst->Vas = cosValue * inst->dq.Vd - sinValue * inst->dq.Vq;
+   inst->Vbs = sinValue * inst->dq.Vd + cosValue * inst->dq.Vq;
 };
 
 extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR_CONTROLLER **opaque, double t, union uData *data)
@@ -156,7 +162,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->maxstep = 10e-12;
 
       inst->dsogi.init(KP_PLL, KI_PLL, F);
-      inst->dq.init(Kp, Ki, L, F, Vdc, 100.0);
+      inst->dq.init(Kp, Ki, 2 * PI * F * L, Vdc / 2.0);
    }
    struct sDQ_INVERTOR_CONTROLLER *inst = *opaque;
 
@@ -165,12 +171,30 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      // sample voltage
-      inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
-      inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
+      calculate_theta(inst, t);
+
+      // current control routine start;
       inst->Vdc = Vdc;
 
-      calculate_theta(inst, t);
+      inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
+
+      inst->Ids = Ids;
+      inst->Iqs = Iqs;
+
+      double Ialpha = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
+      double Ibeta  = sqrt(3.0) * (Ic - Ib) / 3.0;
+
+      inst-> Ialpha = (Ialpha + inst->Ialpha_k_1 + inst->Ialpha_k_2) / 4.0;
+      inst->Ialpha_k_2 = inst->Ialpha_k_1;
+      inst->Ialpha_k_1 = Ialpha;
+
+      inst-> Ibeta  = (Ibeta  + inst->Ibeta_k_1  + inst->Ibeta_k_2) / 4.0;
+      inst->Ibeta_k_2 = inst->Ibeta_k_1;
+      inst->Ibeta_k_1 = Ibeta;
+
+      dq_controller(inst, t);
+      //current control routine stop
 
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
       inst->trg_e   = inst->trg_e + 2 * inst->xpeak /  inst->mcu_clk;
@@ -180,21 +204,35 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    {
       inst->xcntr++;
 
-      // sample current
-      inst->Ialpha = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
-      inst->Ibeta  = sqrt(3.0) * (Ic - Ib) / 3.0;
+      // current control routine start;
+      inst->Vdc = Vdc;
+
+      inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
       inst->Ids = Ids;
       inst->Iqs = Iqs;
 
+      double Ialpha = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
+      double Ibeta  = sqrt(3.0) * (Ic - Ib) / 3.0;
+
+      inst-> Ialpha = (Ialpha + inst->Ialpha_k_1 + inst->Ialpha_k_2) / 4.0;
+      inst->Ialpha_k_2 = inst->Ialpha_k_1;
+      inst->Ialpha_k_1 = Ialpha;
+
+      inst-> Ibeta  = (Ibeta  + inst->Ibeta_k_1  + inst->Ibeta_k_2) / 4.0;
+      inst->Ibeta_k_2 = inst->Ibeta_k_1;
+      inst->Ibeta_k_1 = Ibeta;
+
       dq_controller(inst, t);
+      //current control routine stop
    }
 
    Valpha = inst->Vas;
    Vbeta  = inst->Vbs;
 
-   Vd = inst->dq.Vds;
-   Vq = inst->dq.Vqs;
+   Vd = inst->dq.Vd;
+   Vq = inst->dq.Vq;
 
    theta = inst->theta;
 

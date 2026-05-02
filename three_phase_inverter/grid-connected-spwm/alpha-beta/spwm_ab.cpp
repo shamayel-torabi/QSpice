@@ -1,4 +1,4 @@
-// Automatically generated C++ file on Mon Apr 27 15:49:34 2026
+// Automatically generated C++ file on Sat Apr 18 20:36:21 2026
 //
 // To build with Digital Mars C++ Compiler:
 //
@@ -7,6 +7,8 @@
 #include <malloc.h>
 #include <inttypes.h>
 #include "inc/spwm.h"
+
+#define PI 3.1415926535897932384626
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
 
@@ -41,6 +43,7 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef g5
 #undef g6
 
+
 struct sSPWM_AB
 {
    uint64_t xcntr;
@@ -70,33 +73,37 @@ struct sSPWM_AB
    bool g5;
    bool g6;
 
+   double theta;
+
    SPWM pwm;
 };
 
 extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t, union uData *data)
 {
-   double  Valpha = data[0].d; // input
-   double  Vbeta  = data[1].d; // input
-   double  Fsw    = data[2].d; // input parameter
-   double  Fclk   = data[3].d; // input parameter
-   double &g1     = data[4].d; // output
-   double &g2     = data[5].d; // output
-   double &g3     = data[6].d; // output
-   double &g4     = data[7].d; // output
-   double &g5     = data[8].d; // output
-   double &g6     = data[9].d; // output
+   double  Valpha = data[ 0].d; // input
+   double  Vbeta  = data[ 1].d; // input
+   double  Fsw    = data[ 2].d; // input parameter
+   double  Fclk   = data[ 3].d; // input parameter
+   double  Vdc    = data[ 4].d; // input parameter
+   double &g1     = data[ 5].d; // output
+   double &g2     = data[ 6].d; // output
+   double &g3     = data[ 7].d; // output
+   double &g4     = data[ 8].d; // output
+   double &g5     = data[ 9].d; // output
+   double &g6     = data[10].d; // output
 
    if(!*opaque)
    {
       *opaque = (struct sSPWM_AB *) malloc(sizeof(struct sSPWM_AB));
       bzero(*opaque, sizeof(struct sSPWM_AB));
+
       struct sSPWM_AB *inst = *opaque;
 
       inst->Fsw = Fsw;
       inst->mcu_clk = Fclk;
       inst->xpeak = Fclk / (2 * Fsw);
 
-      inst->pwm.init(inst->xpeak);
+      inst->pwm.init(680.0, inst->xpeak);
 
       inst->g1 = false;
       inst->g2 = false;
@@ -117,7 +124,7 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      inst->pwm(Valpha * 1E-4, Vbeta * 1E-4);
+      inst->pwm(Valpha, Vbeta);
 
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
 
@@ -131,6 +138,11 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
       inst->trg_c_f = inst->trg_e + (2 * inst->xpeak - inst->pwm.switchtime_c) / inst->mcu_clk;
 
       inst->trg_e   = inst->trg_e + 2 * inst->xpeak /  inst->mcu_clk;
+
+      inst->theta += PI / 100.0;
+
+      if(inst->theta >= 2 * PI)
+         inst->theta = 0.0;
    }
 
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m))
@@ -179,12 +191,20 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
       }
    }
 
-   g1 = (inst->g1) ? 15.0 : -7.0;
-   g2 = (inst->g2) ? 15.0 : -7.0;
-   g3 = (inst->g3) ? 15.0 : -7.0;
-   g4 = (inst->g4) ? 15.0 : -7.0;
-   g5 = (inst->g5) ? 15.0 : -7.0;
-   g6 = (inst->g6) ? 15.0 : -7.0;
+
+   // g1 = (inst->g1) ? -7.0 :15.0;
+   // g2 = (inst->g2) ? -7.0 :15.0;
+   // g3 = (inst->g3) ? -7.0 :15.0;
+   // g4 = (inst->g4) ? -7.0 :15.0;
+   // g5 = (inst->g5) ? -7.0 :15.0;
+   // g6 = (inst->g6) ? -7.0 :15.0;
+
+   g1 = (inst->g1) ? -7.0 :15.0;
+   g2 = (inst->g2) ? -7.0 :15.0;
+   g3 = (inst->g5) ? -7.0 :15.0;
+   g4 = (inst->g6) ? -7.0 :15.0;
+   g5 = (inst->g3) ? -7.0 :15.0;
+   g6 = (inst->g4) ? -7.0 :15.0;
 
    inst->t_prev = t;
 }

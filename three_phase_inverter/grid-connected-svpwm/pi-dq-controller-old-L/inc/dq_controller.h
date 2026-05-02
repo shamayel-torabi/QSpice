@@ -9,25 +9,25 @@ class DQController {
 public:
     DQController();
 
-    void init(double kp, double ki, double L, double f, double limit = NOT_SET, double ramp = NOT_SET){
+    void init(double kp, double ki, double wl, double limit = NOT_SET, double ramp = NOT_SET){
         pid_d.init(kp, ki, limit, ramp);
         pid_q.init(kp, ki, limit, ramp);
-        WL = 2.0 * PI * f * L;
+        WL = wl;
     }
 
-    void operator()(double Ids, double Iqs, double Id, double Iq, double Vd, double Vq, double t){
-         double edk = Ids - Id;
-         double eqk = Iqs - Iq;
+    void operator()(double ids, double iqs, double id, double iq, double vd, double vq, double t){
+         double edk = ids - id;
+         double eqk = iqs - iq;
         
          double vdk = pid_d(edk, t);         
          double vqk = pid_q(eqk, t);
 
-        Vds = vdk + Vd - WL * Iq;
-        Vqs = vqk + Vq + WL * Id;
+        Vd = vdk + vd - WL * iq;
+        Vq = vqk + vq + WL * id;
     }
 
-    double Vds;
-    double Vqs;
+    double Vd;
+    double Vq;
 
 private:
     PIController pid_d;

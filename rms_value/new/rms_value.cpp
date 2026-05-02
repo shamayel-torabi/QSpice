@@ -1,13 +1,12 @@
-// Automatically generated C++ file on Wed Apr 29 07:02:17 2026
+// Automatically generated C++ file on Thu Apr 30 17:03:44 2026
 //
 // To build with Digital Mars C++ Compiler:
 //
-//    dmc -mn -WD dsogi_pll.cpp kernel32.lib
+//    dmc -mn -WD rms_value.cpp kernel32.lib
 
 #include <malloc.h>
 #include <math.h>
 #include <inttypes.h>
-#include "inc/dsogi.h"
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
 
@@ -33,73 +32,90 @@ union uData
 int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { return 1; }
 
 // #undef pin names lest they collide with names in any header file(s) you might include.
-#undef Valpha
-#undef Vbeta
-#undef theta
-#undef werr
-#undef Vd
-#undef Vq
+#undef in
+#undef rms
 
-struct sDSOGI_PLL
+struct sRMS_VALUE
 {
    uint64_t xcntr;
    double maxstep;
    double mcu_clk;
    double xpeak;
    double t_prev;
+   double Fs;
 
    double trg_e;   // trigger at start period
    double trg_m;   // trigger at half period
 
-   double F;
-   double Fsw;
+   size_t n;
+   size_t k;
 
-   double theta;
-   DSOGI_PLL dsogi;
+   double in;
+
+   double v_sq[200];
+   double v_mn[200];
+
+   double sq_sum;
+   double mn_sum;
+   double v_mean;
 };
 
-extern "C" __declspec(dllexport) void dsogi_pll(struct sDSOGI_PLL **opaque, double t, union uData *data)
+void calculate_rms(struct sRMS_VALUE *inst){
+   inst->mn_sum -= inst->v_mn[inst->k];
+   inst->mn_sum += inst->in;
+
+   inst->sq_sum -= inst->v_sq[inst->k];
+   double in_square = (inst->in - inst->v_mean) * (inst->in - inst->v_mean);
+
+   inst->sq_sum += in_square;
+
+   inst->v_mn[inst->k] = inst->in;
+   inst->v_sq[inst->k] = in_square;
+   
+   inst->v_mean = inst->mn_sum / inst->n;
+
+   inst->k++;
+   if(inst->k >= inst->n){
+      inst->k = 0;
+   }
+};
+
+extern "C" __declspec(dllexport) void rms_value(struct sRMS_VALUE **opaque, double t, union uData *data)
 {
-   double  Valpha = data[ 0].d; // input
-   double  Vbeta  = data[ 1].d; // input
-   double  Kp     = data[ 2].d; // input parameter
-   double  Ki     = data[ 3].d; // input parameter
-   double  Freq   = data[ 4].d; // input parameter
-   double  Fs     = data[ 5].d; // input parameter
-   double  Fclk   = data[ 6].d; // input parameter
-   double &theta  = data[ 7].d; // output
-   double &werr   = data[ 8].d; // output
-   double &Vd     = data[ 9].d; // output
-   double &Vq     = data[10].d; // output
+   double  in   = data[0].d; // input
+   const double  Fclk = data[1].d; // input parameter
+   const double  Fs   = data[2].d; // input parameter
+   double &rms  = data[3].d; // output
 
    if(!*opaque)
    {
-      *opaque = (struct sDSOGI_PLL *) malloc(sizeof(struct sDSOGI_PLL));
-      bzero(*opaque, sizeof(struct sDSOGI_PLL));
+      *opaque = (struct sRMS_VALUE *) malloc(sizeof(struct sRMS_VALUE));
+      bzero(*opaque, sizeof(struct sRMS_VALUE));
 
-      struct sDSOGI_PLL *inst = *opaque;
+      struct sRMS_VALUE *inst = *opaque;
 
-      inst->Fsw = Fs;
-      inst->F = Freq;
-
+      inst->Fs = Fs;
       inst->mcu_clk = Fclk;
       inst->xpeak = Fclk / (2 * Fs);
-
       inst->trg_e = 0.0;
       inst->trg_m = inst->xpeak / inst->mcu_clk;
-
       inst->maxstep = 10e-12;
 
-      inst->dsogi.init(Kp, Ki, Freq);
+      inst->n = 200;
+      inst->sq_sum = 0.0;
+      inst->mn_sum = 0.0;
+      inst->v_mean = 0.0;
+      inst->k = 0;
    }
-   struct sDSOGI_PLL *inst = *opaque;
+   struct sRMS_VALUE *inst = *opaque;
 
 // Implement module evaluation code here:
    if((inst->t_prev <= inst->trg_e)&&(t >= inst->trg_e)){
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      inst->dsogi(Valpha, Vbeta, t);
+      inst->in = in;
+      calculate_rms(inst);
 
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
       inst->trg_e   = inst->trg_e + 2 * inst->xpeak /  inst->mcu_clk;
@@ -110,31 +126,29 @@ extern "C" __declspec(dllexport) void dsogi_pll(struct sDSOGI_PLL **opaque, doub
       inst->xcntr++;
    }
 
-   theta = inst->dsogi.theta;
-   werr  = inst->dsogi.omega_err;
-   Vd    = inst->dsogi.Vd;
-   Vq    = inst->dsogi.Vq;
+   rms = sqrt(inst->sq_sum / inst->n);
+
    inst->t_prev = t;
 }
 
-extern "C" __declspec(dllexport) double MaxExtStepSize(struct sDSOGI_PLL *inst, double t)
+extern "C" __declspec(dllexport) double MaxExtStepSize(struct sRMS_VALUE *inst, double t)
 {
    return inst->maxstep; // implement a good choice of max timestep size that depends on struct sSVPWM
 }
 
-extern "C" __declspec(dllexport) void Trunc(struct sDSOGI_PLL *inst, double t, union uData *data, double *timestep)
-{ // limit the timestep to a tolerance if the circuit causes a change in struct sDSOGI_PLL
+extern "C" __declspec(dllexport) void Trunc(struct sRMS_VALUE *inst, double t, union uData *data, double *timestep)
+{ // limit the timestep to a tolerance if the circuit causes a change in struct sRMS_VALUE
    const double ttol = 1e-9; // 1ns default tolerance
    if(*timestep > ttol)
    {
-      struct sDSOGI_PLL tmp = *inst;
-      dsogi_pll(&(&tmp), t, data);
+      struct sRMS_VALUE tmp = *inst;
+      rms_value(&(&tmp), t, data);
       if(tmp.xcntr != inst->xcntr) // implement a meaningful way to detect if the state has changed
          *timestep = ttol;
    }
 }
 
-extern "C" __declspec(dllexport) void Destroy(struct sDSOGI_PLL *inst)
+extern "C" __declspec(dllexport) void Destroy(struct sRMS_VALUE *inst)
 {
    free(inst);
 }

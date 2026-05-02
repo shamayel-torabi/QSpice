@@ -22,8 +22,8 @@ public:
         double vdk = vd_1 + Kp * ed + Ki * dt * 0.5 * (ed + ed_1);
         double vqk = vq_1 + Kp * eq + Ki * dt * 0.5 * (eq + eq_1);
 
-        Vd = (vdk - WL * iq) + vd ;
-        Vq = (vqk + WL * id) + vq ;
+        Vd = vdk - vd - WL * iq;
+        Vq = vqk - vq + WL * id;
 
         ed_1 = ed;
         eq_1 = eq;

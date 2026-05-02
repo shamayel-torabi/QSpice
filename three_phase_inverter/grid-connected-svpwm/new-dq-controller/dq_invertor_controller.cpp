@@ -10,8 +10,8 @@
 #include "inc/dsogi.h"
 #include "inc/dq_controller.h"
 
-#define KP_PLL    9.2E-4
-#define KI_PLL    42.3E-4
+#define KP_PLL    92
+#define KI_PLL    4230
 #define PI        3.1415926535897932384626
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
@@ -156,7 +156,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->maxstep = 10e-12;
 
       inst->dsogi.init(KP_PLL, KI_PLL, F);
-      inst->dq.init(Kp, Ki, Vdc / 2.0, 2 * PI * F * L);
+      inst->dq.init(Kp, Ki, 2 * PI * F * L);
    }
    struct sDQ_INVERTOR_CONTROLLER *inst = *opaque;
 
