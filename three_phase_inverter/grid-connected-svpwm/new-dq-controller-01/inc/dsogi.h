@@ -45,7 +45,7 @@ public:
         double v = Vq / max(Vm, 1e-4);
         
         omega_err = pi_controller(v, t);
-        omega = omega_err + 2 * PI * Freq;
+        omega = omega_err + 2 * PI * Freq;        
         theta = integrator(omega, t);
 
         return theta;
