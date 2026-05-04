@@ -11,28 +11,26 @@ public:
      * @param Tf - Low pass filter time constant
      */
     LowPassFilter();
-    void init(double time_constant){
-        Tf = time_constant;
+    void init(double tf, double ts){
+        Tf = tf;
+        Ts = ts;
     }
 
-    double operator() (double x, double t){
-        double dt = (t - t_prev);
-
+    double operator() (double x){
         // calculate the first order filer
-        double alpha = Tf/(Tf + dt);
+        double alpha = Tf/(Tf + Ts);
         double y = alpha * y_prev + (1.0 - alpha) * x;
 
         // save the variables for the future steps
         y_prev = y;
-        t_prev = t;
         return y;
     }
 
-    double Tf; //!< Low pass filter time constant
 
 protected:
-    double t_prev;  //!< Last execution timestamp
-    double y_prev; //!< filtered value in previous execution step 
+    double Tf;
+    double Ts;
+    double y_prev; 
 };
 
 #endif // LOWPASS_FILTER_H

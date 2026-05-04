@@ -3,15 +3,15 @@
 #define DQCONTROLLER_H
 
 #include <math.h>
+#include "lowpass_filter.h"
 
 class DQController {
 public:
     DQController();
 
-    void init(double kp, double ki, double vdc, double W, double L, double Ts){
+    void init(double kp, double ki, double W, double L, double Ts){
         Kp = kp;
         Ki = ki;
-        Vdc = vdc / 2.0;
         wl = W * L;       
         sin_wt = sin(W * Ts);
         cos_wt = cos(W * Ts);
@@ -26,9 +26,10 @@ public:
         iLq_1 = 0.0;
         vcd_1 = 0.0;
         vcq_1 = 0.0;
+        vdc_lp.init(100.0, Ts);
     }
 
-    void operator()(double ids, double iqs, double iLd_1, double iLq_1, double vod_1, double voq_1){
+    void operator()(double ids, double iqs, double iLd_1, double iLq_1, double vod_1, double voq_1, double vdc){
         double ierrLd_1 = ids - iLd_1;
         double ierrLq_1 = iqs - iLq_1;
 
@@ -41,8 +42,10 @@ public:
         double vid = (1.0 + cos_wt) * vcd / 2.0 - sin_wt * vcq / 2.0;
         double viq = (1.0 + cos_wt) * vcq / 2.0 + sin_wt * vcd / 2.0;
 
-        Vd = vid / Vdc;
-        Vq = viq / Vdc;
+        double vm = vdc_lp(vdc / 2.0);
+
+        Vd = vid / vm;
+        Vq = viq / vm;
     }
 
     double Vd;
@@ -89,6 +92,8 @@ private:
 
     double vcd_1;
     double vcq_1;
+
+    LowPassFilter vdc_lp;
 };
 
 

@@ -9,7 +9,6 @@
 #include <inttypes.h>
 #include "inc/dsogi.h"
 #include "inc/dq_controller.h"
-#include "inc/lowpass_filter.h"
 
 #define KP_PLL    92
 #define KI_PLL    4230
@@ -94,8 +93,7 @@ struct sDQ_INVERTOR_CONTROLLER
    double cosValue;
 
    DSOGI_PLL dsogi;
-   DQController dq;
-   LowPassFilter lp_vdc;
+   DQController dq;   
 };
 
 void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
@@ -114,7 +112,7 @@ void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
    double Id =  inst->Ialpha * cosValue + inst->Ibeta * sinValue;
    double Iq = -inst->Ialpha * sinValue + inst->Ibeta * cosValue;
 
-   inst->dq(inst->Ids, inst->Iqs, Id, Iq, Vd, Vq);
+   inst->dq(inst->Ids, inst->Iqs, Id, Iq, Vd, Vq, inst->Vdc);
 
    inst->Vas = cosValue * inst->dq.Vd - sinValue * inst->dq.Vq;
    inst->Vbs = sinValue * inst->dq.Vd + cosValue * inst->dq.Vq;
@@ -166,8 +164,8 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->maxstep = 10e-12;
 
       inst->dsogi.init(KP_PLL, KI_PLL, F);
-      inst->dq.init(Kp, Ki, Vdc / 2.0, w, L, Ts);
-      inst->lp_vdc.init(100.0);
+      inst->dq.init(Kp, Ki, w, L, Ts);
+      
    }
    struct sDQ_INVERTOR_CONTROLLER *inst = *opaque;
 
@@ -179,7 +177,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       calculate_theta(inst, t);
 
       // current control routine start;
-      inst->Vdc = inst->lp_vdc(Vdc, t);
+      inst->Vdc = Vdc;
 
       inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
@@ -210,7 +208,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->xcntr++;
 
       // current control routine start;
-      inst->Vdc = inst->lp_vdc(Vdc, t);
+      inst->Vdc = Vdc;
 
       inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
@@ -221,11 +219,11 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       double Ialpha = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
       double Ibeta  = sqrt(3.0) * (Ic - Ib) / 3.0;
 
-      inst-> Ialpha = (Ialpha + 2.0 * inst->Ialpha_k_1 + inst->Ialpha_k_2) / 4.0;
+      inst->Ialpha = (Ialpha + 2.0 * inst->Ialpha_k_1 + inst->Ialpha_k_2) / 4.0;
       inst->Ialpha_k_2 = inst->Ialpha_k_1;
       inst->Ialpha_k_1 = Ialpha;
 
-      inst-> Ibeta  = (Ibeta  + 2.0 * inst->Ibeta_k_1  + inst->Ibeta_k_2) / 4.0;
+      inst->Ibeta  = (Ibeta  + 2.0 * inst->Ibeta_k_1  + inst->Ibeta_k_2) / 4.0;
       inst->Ibeta_k_2 = inst->Ibeta_k_1;
       inst->Ibeta_k_1 = Ibeta;
 
