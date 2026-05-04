@@ -9,6 +9,7 @@
 #include <inttypes.h>
 #include "inc/dsogi.h"
 #include "inc/dq_controller.h"
+#include "inc/lowpass_filter.h"
 
 #define KP_PLL    92
 #define KI_PLL    4230
@@ -94,6 +95,7 @@ struct sDQ_INVERTOR_CONTROLLER
 
    DSOGI_PLL dsogi;
    DQController dq;
+   LowPassFilter lp_vdc;
 };
 
 void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
@@ -163,6 +165,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
 
       inst->dsogi.init(KP_PLL, KI_PLL, F);
       inst->dq.init(Kp, Ki, 2 * PI * F * L, Vdc / 2.0);
+      inst->lp_vdc.init(100.0);
    }
    struct sDQ_INVERTOR_CONTROLLER *inst = *opaque;
 
@@ -174,7 +177,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       calculate_theta(inst, t);
 
       // current control routine start;
-      inst->Vdc = Vdc;
+      inst->Vdc = inst->lp_vdc(Vdc, t);
 
       inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
@@ -205,7 +208,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->xcntr++;
 
       // current control routine start;
-      inst->Vdc = Vdc;
+      inst->Vdc = inst->lp_vdc(Vdc, t);
 
       inst->Valpha = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
