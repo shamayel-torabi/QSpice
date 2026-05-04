@@ -93,7 +93,7 @@ struct sDQ_INVERTOR_CONTROLLER
    double cosValue;
 
    DSOGI_PLL dsogi;
-   DQController dq;   
+   DQController dq;
 };
 
 void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
@@ -165,7 +165,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
 
       inst->dsogi.init(KP_PLL, KI_PLL, F);
       inst->dq.init(Kp, Ki, w, L, Ts);
-      
+
    }
    struct sDQ_INVERTOR_CONTROLLER *inst = *opaque;
 

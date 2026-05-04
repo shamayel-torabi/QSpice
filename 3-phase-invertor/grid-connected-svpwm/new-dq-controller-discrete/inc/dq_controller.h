@@ -26,7 +26,7 @@ public:
         iLq_1 = 0.0;
         vcd_1 = 0.0;
         vcq_1 = 0.0;
-        vdc_lp.init(100.0, Ts);
+        vdc_lp.init(1000.0, Ts);
     }
 
     void operator()(double ids, double iqs, double iLd_1, double iLq_1, double vod_1, double voq_1, double vdc){
@@ -43,6 +43,7 @@ public:
         double viq = (1.0 + cos_wt) * vcq / 2.0 + sin_wt * vcd / 2.0;
 
         double vm = vdc_lp(vdc / 2.0);
+        //double vm = vdc / 2.0;
 
         Vd = vid / vm;
         Vq = viq / vm;
@@ -65,7 +66,7 @@ private:
     double Q_CC(double ierrLq_1, double iLq_1, double vod_1, double voq_1){
         double errLq = Ki * ierrLq_1 + err_Lq_1;
         err_Lq_1 = errLq;
-        iLq = iLq_1 * cos_wt + (vcq_1 - voq_1) * sin_wt / wl - vod_1 * (1.0 - cos_wt) / wl;
+        iLq = iLq_1 * cos_wt + (vcq_1 - voq_1) * sin_wt / wl - vod_1 * (-1.0 + cos_wt) / wl;
         iLq_1 = iLq;
         double vcq = errLq - Kp * iLq;
         vcq_1 = vcq;
