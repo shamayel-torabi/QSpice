@@ -2,29 +2,18 @@
 #ifndef SOGI_H
 #define SOGI_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define K  1.4142135623731
 
 class SOGI {
 public:
-    SOGI(){
-        t_prev = 0.0;
+    SOGI();
 
-        va_n_1 = 0.0;
-        va_n_2 = 0.0;
+    void init(double ts){
+        Ts = ts;
+        reset();
+    }
 
-        vb_n_1 = 0.0;
-        vb_n_2 = 0.0;
-
-        vac_n_1 = 0.0;
-        vac_n_2 = 0.0;
-    };
-
-    void operator()(double vac_n, double w, double t, double *va, double *vb){
-        double Ts = (t - t_prev);
+    void operator()(double vac_n, double w, double *va, double *vb){
         double tw = Ts * w;
 
         double den = (4.0 + 2.0 * K * w * Ts + tw * tw);
@@ -35,9 +24,7 @@ public:
 
         double va_n = b0 * (vac_n_1 - vac_n_2) + a1 * va_n_1 + a2 * va_n_2; 
         double vb_n = b1 * (vac_n + 2.0 * vac_n_1 + vac_n_2)  + a1 * vb_n_1 + a2 * vb_n_2;          
-
-        t_prev = t;
-        
+       
         vac_n_2 = vac_n_1;
         vac_n_1 = vac_n;
 
@@ -51,9 +38,19 @@ public:
         *vb = vb_n;
     };
 
+    void reset(){
+        va_n_1 = 0.0;
+        va_n_2 = 0.0;
+
+        vb_n_1 = 0.0;
+        vb_n_2 = 0.0;
+
+        vac_n_1 = 0.0;
+        vac_n_2 = 0.0;
+    }
 
 protected:
-    double t_prev;
+    double Ts;
 
     double va_n_1;
     double va_n_2;
@@ -65,7 +62,5 @@ protected:
     double vac_n_2;
 };
 
-#ifdef __cplusplus
-}
-#endif
+
 #endif  //SOGI_H

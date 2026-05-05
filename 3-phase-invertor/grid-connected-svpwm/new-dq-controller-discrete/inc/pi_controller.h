@@ -9,25 +9,24 @@
 #define _isset(a) ( (a) != (NOT_SET) )
 #define NOT_SET -12345.0
 
-#define PI 3.1415926535897932384626
 
 class PIController
 {
 public:
     PIController();
 
-    void init(double kp, double ki, double limit = NOT_SET, double ramp = NOT_SET){
+    void init(double kp, double ki,double ts, double limit = NOT_SET, double ramp = NOT_SET){
         Kp = kp;
         Ki = ki;
+        Ts = ts;
         output_ramp  = ramp;
         output_limit = limit;
         reset();
     }
 
-    double operator() (double error, double t){
-        double dt = (t - t_prev);
+    double operator() (double error){
         double proportional = Kp * error;
-        double integral = integral_prev + Ki * dt * 0.5 *(error + error_prev);
+        double integral = integral_prev + Ki * Ts * 0.5 *(error + error_prev);
 
         // antiwindup - limit the output
         if(_isset(output_limit)) integral = _constrain(integral, -output_limit, output_limit);
@@ -40,19 +39,18 @@ public:
         // if output ramp defined
         if(_isset(output_ramp) && output_ramp > 0.0){
             // limit the acceleration by ramping the output
-            double output_rate = (output - output_prev)/dt;
+            double output_rate = (output - output_prev) / Ts;
 
             if (output_rate > output_ramp)
-                output = output_prev + output_ramp*dt;
+                output = output_prev + output_ramp * Ts;
             else if (output_rate < -output_ramp)
-                output = output_prev - output_ramp*dt;
+                output = output_prev - output_ramp * Ts;
         }
         
         // saving for the next pass
         integral_prev = integral;
         output_prev = output;
         error_prev = error;
-        t_prev = t;
 
         return output;
     }
@@ -65,13 +63,13 @@ public:
 protected:
     double Kp;          //!< Proportional gain 
     double Ki;          //!< Integral gain 
+    double Ts;
     double output_ramp; //!< Maximum speed of change of the output value
     double output_limit;       //!< Maximum output value
 
     double error_prev; //!< last tracking error value
     double output_prev;  //!< last pid output value
     double integral_prev; //!< last integral component value
-    double t_prev;
 };
 
 #endif // PIController_H

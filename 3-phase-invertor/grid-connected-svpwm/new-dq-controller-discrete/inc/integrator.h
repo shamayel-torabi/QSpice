@@ -2,7 +2,9 @@
 #ifndef INTEGRATOR_H
 #define INTEGRATOR_H
 
+#ifndef PI
 #define PI 3.1415926535897932384626
+#endif
 
 class Integrator {
 public:
@@ -11,8 +13,12 @@ public:
         output_prev = 0.0;
     };
 
-    double operator()(double error, double t){
-        double Ts = (t - t_prev);
+    void init(double ts){
+        Ts = ts;
+        reset();
+    }
+
+    double operator()(double error){
         double output = output_prev + Ts * 0.5 * (error + error_prev);
         
         if(output >= 2 * PI)
@@ -20,16 +26,20 @@ public:
 
         output_prev = output;
         error_prev = error;
-        t_prev = t;
         
         return output;
     };
 
+    void reset(){
+        error_prev = 0.0;
+        output_prev = 0.0;
+    }
+
 protected:
-    double error_prev; //!< last tracking error value
-    double output_prev; //!< last integral component value
-    double t_prev; //!< Last execution timestamp
+    double Ts;
+    double error_prev; 
+    double output_prev;
     
 };
 
-#endif  INTEGRATOR_H
+#endif  //INTEGRATOR_H

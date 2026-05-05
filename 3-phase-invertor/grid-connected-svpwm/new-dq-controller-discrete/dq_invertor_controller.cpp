@@ -12,7 +12,7 @@
 
 #define KP_PLL    92
 #define KI_PLL    4230
-#define PI        3.1415926535897932384626
+
 
 extern "C" __declspec(dllexport) void (*bzero)(void *ptr, unsigned int count)   = 0;
 
@@ -92,12 +92,12 @@ struct sDQ_INVERTOR_CONTROLLER
    double sinValue;
    double cosValue;
 
-   DSOGI_PLL dsogi;
+   DSOGI dsogi;
    DQController dq;
 };
 
 void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
-   inst->theta = inst->dsogi(inst->Valpha, inst->Vbeta, t);
+   inst->theta = inst->dsogi(inst->Valpha, inst->Vbeta);
    inst->sinValue = sin(inst->theta);
    inst->cosValue = cos(inst->theta);
 };
@@ -152,7 +152,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->Fsw = Fsw;
       inst->F = F;
       inst->L = L;
-      double Ts = 1.0 /( 2.0 * Fsw);
+      double Ts = 1.0 / Fsw;
       double w  = 2.0 * PI * F;
 
       inst->mcu_clk = Fclk;
@@ -163,8 +163,8 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
 
       inst->maxstep = 10e-12;
 
-      inst->dsogi.init(KP_PLL, KI_PLL, F);
-      inst->dq.init(Kp, Ki, w, L, Ts);
+      inst->dsogi.init(KP_PLL, KI_PLL, F, Ts);
+      inst->dq.init(Kp, Ki, w, L, Ts / 2.0);
 
    }
    struct sDQ_INVERTOR_CONTROLLER *inst = *opaque;
