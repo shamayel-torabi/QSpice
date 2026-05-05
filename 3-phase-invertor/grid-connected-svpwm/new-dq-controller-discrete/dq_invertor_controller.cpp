@@ -52,6 +52,7 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Vq
 #undef Vd
 #undef theta
+#undef Vdcf
 
 struct sDQ_INVERTOR_CONTROLLER
 {
@@ -96,7 +97,7 @@ struct sDQ_INVERTOR_CONTROLLER
    DQController dq;
 };
 
-void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
+void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst){
    inst->theta = inst->dsogi(inst->Valpha, inst->Vbeta);
    inst->sinValue = sin(inst->theta);
    inst->cosValue = cos(inst->theta);
@@ -140,6 +141,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    double &Vq     = data[17].d; // output
    double &Vd     = data[18].d; // output
    double &theta  = data[19].d; // output
+   double &Vdcf   = data[20].d; // output
 
 
    if(!*opaque)
@@ -174,7 +176,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      calculate_theta(inst, t);
+      calculate_theta(inst);
 
       // current control routine start;
       inst->Vdc = Vdc;
@@ -236,6 +238,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
 
    Vd = inst->dq.Vd;
    Vq = inst->dq.Vq;
+   Vdcf = inst->dq.Vdcf;
 
    theta = inst->theta;
 

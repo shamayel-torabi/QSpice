@@ -15,18 +15,8 @@ public:
         wl = W * L;       
         sin_wt = sin(W * Ts);
         cos_wt = cos(W * Ts);
-
-        err_Ld_1 = 0.0;
-        err_Lq_1 = 0.0;
-        
-        iLd = 0.0;
-        iLq = 0.0;
-        
-        iLd_1 = 0.0;
-        iLq_1 = 0.0;
-        vcd_1 = 0.0;
-        vcq_1 = 0.0;
-        vdc_lp.init(1000.0, Ts);
+        vdc_lp.init(100.0, Ts);
+        reset();
     }
 
     void operator()(double ids, double iqs, double iLd_1, double iLq_1, double vod_1, double voq_1, double vdc){
@@ -42,15 +32,29 @@ public:
         double vid = (1.0 + cos_wt) * vcd / 2.0 - sin_wt * vcq / 2.0;
         double viq = (1.0 + cos_wt) * vcq / 2.0 + sin_wt * vcd / 2.0;
 
-        double vm = vdc_lp(vdc / 2.0);
-        //double vm = vdc / 2.0;
+        //Vdcf = vdc * vdc_lp(vdc / 2.0);
+        Vdcf = vdc / 2.0;
 
-        Vd = vid / vm;
-        Vq = viq / vm;
+        Vd = vid / Vdcf;
+        Vq = viq / Vdcf;
+    }
+
+    void reset() {
+        err_Ld_1 = 0.0;
+        err_Lq_1 = 0.0;
+        
+        iLd = 0.0;
+        iLq = 0.0;
+        
+        iLd_1 = 0.0;
+        iLq_1 = 0.0;
+        vcd_1 = 0.0;
+        vcq_1 = 0.0;
     }
 
     double Vd;
     double Vq;
+    double Vdcf;
 
 private:
     double D_CC(double ierrLd_1, double iLd_1, double vod_1, double voq_1){
