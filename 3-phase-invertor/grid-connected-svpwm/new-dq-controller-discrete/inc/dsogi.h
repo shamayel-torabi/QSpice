@@ -71,10 +71,10 @@ protected:
 
 private: 
     double max(double a, double b){
-    if(a > b)
-        return a;
-    else
-        return b;
+        if(a > b)
+            return a;
+        else
+            return b;
     };
 };
 

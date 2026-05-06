@@ -16,7 +16,7 @@ public:
         sin_wt = sin(W * Ts);
         cos_wt = cos(W * Ts);
 
-        vdc_lp.init(0.2, Ts);
+        vdc_lp.init(0.05, Ts);
 
         reset();
     }
@@ -34,7 +34,7 @@ public:
         Vd = (1.0 + cos_wt) * vcd / 2.0 - sin_wt * vcq / 2.0;
         Vq = (1.0 + cos_wt) * vcq / 2.0 + sin_wt * vcd / 2.0;
 
-        Vdcf = vdc_lp(vdc);
+        Vdcf = max(vdc_lp(vdc), 1.0);
 
         Vd /= Vdcf;
         Vq /= Vdcf;
@@ -84,6 +84,12 @@ private:
         return vcq;
     }
 
+    double max(double a, double b){
+        if(a > b)
+            return a;
+        else
+            return b;
+    }
 
     double Ki;
     double Kp;
