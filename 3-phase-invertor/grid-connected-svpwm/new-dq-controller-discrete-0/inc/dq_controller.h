@@ -15,7 +15,7 @@ public:
         wl = W * L;       
         sin_wt = sin(W * Ts);
         cos_wt = cos(W * Ts);
-        vdc_lp.init(0.005, Ts);
+        vdc_lp.init(100.0, Ts);
         reset();
     }
 
@@ -32,8 +32,8 @@ public:
         double vid = (1.0 + cos_wt) * vcd / 2.0 - sin_wt * vcq / 2.0;
         double viq = (1.0 + cos_wt) * vcq / 2.0 + sin_wt * vcd / 2.0;
 
-        Vdcf = vdc_lp(vdc);
-        //Vdcf = vdc / 2.0;
+        //Vdcf = vdc * vdc_lp(vdc / 2.0);
+        Vdcf = vdc / 2.0;
 
         Vd = vid / Vdcf;
         Vq = viq / Vdcf;
