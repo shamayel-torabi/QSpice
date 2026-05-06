@@ -15,41 +15,42 @@ public:
         wl = W * L;       
         sin_wt = sin(W * Ts);
         cos_wt = cos(W * Ts);
-        vdc_lp.init(0.005, Ts);
+
+        vdc_lp.init(0.2, Ts);
+
         reset();
     }
 
-    void operator()(double ids, double iqs, double iLd_1, double iLq_1, double vod_1, double voq_1, double vdc){
-        double ierrLd_1 = ids - iLd_1;
-        double ierrLq_1 = iqs - iLq_1;
+    void operator()(double ids, double iqs, double iLd, double iLq, double vod, double voq, double vdc){
+        double ierrLd = ids - iLd;
+        double ierrLq = iqs - iLq;
 
-        double vcd = D_CC(ierrLd_1, iLd_1, vod_1, voq_1);
-        double vcq = Q_CC(ierrLq_1, iLq_1, vod_1, voq_1);
+        double vcd = D_CC(ierrLd, iLd, vod, voq);
+        double vcq = Q_CC(ierrLq, iLq, vod, voq);
 
         vcd -= wl * iLq;
         vcq += wl * iLd;
 
-        double vid = (1.0 + cos_wt) * vcd / 2.0 - sin_wt * vcq / 2.0;
-        double viq = (1.0 + cos_wt) * vcq / 2.0 + sin_wt * vcd / 2.0;
+        Vd = (1.0 + cos_wt) * vcd / 2.0 - sin_wt * vcq / 2.0;
+        Vq = (1.0 + cos_wt) * vcq / 2.0 + sin_wt * vcd / 2.0;
 
         Vdcf = vdc_lp(vdc);
-        //Vdcf = vdc / 2.0;
 
-        Vd = vid / Vdcf;
-        Vq = viq / Vdcf;
+        Vd /= Vdcf;
+        Vq /= Vdcf;
     }
 
     void reset() {
-        err_Ld_1 = 0.0;
-        err_Lq_1 = 0.0;
+        ierrLd_prev = 0.0;
+        ierrLq_prev = 0.0;
         
         iLd = 0.0;
         iLq = 0.0;
         
-        iLd_1 = 0.0;
-        iLq_1 = 0.0;
-        vcd_1 = 0.0;
-        vcq_1 = 0.0;
+        iLd_prev = 0.0;
+        iLq_prev = 0.0;
+        vcd_prev = 0.0;
+        vcq_prev = 0.0;
     }
 
     double Vd;
@@ -57,46 +58,51 @@ public:
     double Vdcf;
 
 private:
-    double D_CC(double ierrLd_1, double iLd_1, double vod_1, double voq_1){
-        double errLd = Ki * ierrLd_1 + err_Ld_1;
-        err_Ld_1 = errLd;
-        iLd = iLd_1 * cos_wt + (vcd_1 - vod_1) * sin_wt / wl - voq_1 * (1.0 - cos_wt) / wl;
-        iLd_1 = iLd;
+    double D_CC(double ierrLd, double iLd, double vod, double voq){
+        double errLd = Ki * ierrLd + ierrLd_prev;
+        ierrLd_prev = errLd;
+
+        iLd = iLd_prev * cos_wt + (vcd_prev - vod) * sin_wt / wl - voq * (1.0 - cos_wt) / wl;
+        iLd_prev = iLd;
+
         double vcd = errLd - Kp * iLd;
-        vcd_1 = vcd;
+        vcd_prev = vcd;
+
         return vcd;
     }
     
-    double Q_CC(double ierrLq_1, double iLq_1, double vod_1, double voq_1){
-        double errLq = Ki * ierrLq_1 + err_Lq_1;
-        err_Lq_1 = errLq;
-        iLq = iLq_1 * cos_wt + (vcq_1 - voq_1) * sin_wt / wl - vod_1 * (-1.0 + cos_wt) / wl;
-        iLq_1 = iLq;
+    double Q_CC(double ierrLq, double iLq, double vod, double voq){
+        double errLq = Ki * ierrLq + ierrLq_prev;
+        ierrLq_prev = errLq;
+
+        iLq = iLq_prev * cos_wt + (vcq_prev - voq) * sin_wt / wl - vod * (-1.0 + cos_wt) / wl;
+        iLq_prev = iLq;
+
         double vcq = errLq - Kp * iLq;
-        vcq_1 = vcq;
+        vcq_prev = vcq;
+
         return vcq;
     }
 
 
     double Ki;
     double Kp;
-    double Vdc;
 
     double sin_wt;
     double cos_wt;
     double wl;
 
-    double err_Ld_1;
-    double err_Lq_1;
+    double ierrLd_prev;
+    double ierrLq_prev;
 
     double iLd;
     double iLq;
 
-    double iLd_1;
-    double iLq_1;
+    double iLd_prev;
+    double iLq_prev;
 
-    double vcd_1;
-    double vcq_1;
+    double vcd_prev;
+    double vcq_prev;
 
     LowPassFilter vdc_lp;
 };
