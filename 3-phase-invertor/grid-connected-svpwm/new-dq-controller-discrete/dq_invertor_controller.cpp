@@ -85,8 +85,8 @@ struct sDQ_INVERTOR_CONTROLLER
    double Valph_k[4];
    double Vbeta_k[4];
 
-   double Vas;
-   double Vbs;
+   double Var;
+   double Vbr;
 
    double Ids;
    double Iqs;
@@ -107,7 +107,7 @@ void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst){
 
 void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
    double sinValue = inst->sinValue;
-   double cosValue = inst->cosValue;
+   double cosValue = inst->cosValue;   
 
    double Vd =  inst->Valph * cosValue + inst->Vbeta * sinValue;
    double Vq = -inst->Valph * sinValue + inst->Vbeta * cosValue;
@@ -117,8 +117,8 @@ void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
 
    inst->dq(inst->Ids, inst->Iqs, Id, Iq, Vd, Vq, inst->Vdc);
 
-   inst->Vas = cosValue * inst->dq.Vd - sinValue * inst->dq.Vq;
-   inst->Vbs = sinValue * inst->dq.Vd + cosValue * inst->dq.Vq;
+   inst->Var = cosValue * inst->dq.Vd - sinValue * inst->dq.Vq;
+   inst->Vbr = sinValue * inst->dq.Vd + cosValue * inst->dq.Vq;
 };
 
 extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR_CONTROLLER **opaque, double t, union uData *data)
@@ -178,15 +178,25 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
+      inst->Vdc = Vdc;
+      inst->Ids = Ids;
+      inst->Iqs = Iqs;
+
+      inst->Ialph = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
+      inst->Ibeta = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
+      
+      inst->Valph = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
+      inst->Vbeta = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
+     
+      calculate_theta(inst);
+      dq_controller(inst, t);
+
       // current sample 0 at start of period
       inst->Ialph_k[0] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
       inst->Ibeta_k[0] = sqrt(3.0) * (Ic - Ib) / 3.0;
 
       inst->Valph_k[0] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta_k[0]  = sqrt(3.0) * (Vc - Vb) / 3.0;
-
-      //calculate_theta(inst);
-      //dq_controller(inst, t);
 
       double quarter = inst->xpeak / 2.0;
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
@@ -209,26 +219,12 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m)){
       inst->xcntr++;
 
-      inst->Vdc = Vdc;
-      inst->Ids = Ids;
-      inst->Iqs = Iqs;
-
-
       // current sample 2 at 1/2 period
       inst->Ialph_k[2] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
       inst->Ibeta_k[2] = sqrt(3.0) * (Ic - Ib) / 3.0;
 
       inst->Valph_k[2] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta_k[2]  = sqrt(3.0) * (Vc - Vb) / 3.0;
-
-      inst->Ialph = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
-      inst->Ibeta = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
-
-      inst->Valph = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
-      inst->Vbeta = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
-
-      calculate_theta(inst);
-      dq_controller(inst, t);
    }
 
    if((inst->t_prev <= inst->trg_q_f)&&(t >= inst->trg_q_f)){
@@ -242,11 +238,11 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->Vbeta_k[3]  = sqrt(3.0) * (Vc - Vb) / 3.0;
    }
 
-   Valpha = inst->Vas;
-   Vbeta  = inst->Vbs;
+   Valpha = inst->Var;
+   Vbeta  = inst->Vbr;
 
-   Vd = inst->Valph;
-   Vq = inst->Vbeta;
+   Vd = inst->dq.Vd;
+   Vq = inst->dq.Vq;
    Vdcf = inst->dq.Vdcf;
 
    theta = inst->theta;
