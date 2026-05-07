@@ -82,6 +82,9 @@ struct sDQ_INVERTOR_CONTROLLER
    double Ialph_k[4];
    double Ibeta_k[4];
 
+   double Valph_k[4];
+   double Vbeta_k[4];
+
    double Vas;
    double Vbs;
 
@@ -176,14 +179,14 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
       // current sample 0 at start of period
-      inst-> Ialph_k[0] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
-      inst-> Ibeta_k[0] = sqrt(3.0) * (Ic - Ib) / 3.0;
+      inst->Ialph_k[0] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
+      inst->Ibeta_k[0] = sqrt(3.0) * (Ic - Ib) / 3.0;
 
-      inst->Ialph = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
-      inst->Ibeta = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
+      inst->Valph_k[0] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta_k[0]  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
-      calculate_theta(inst);
-      dq_controller(inst, t);
+      //calculate_theta(inst);
+      //dq_controller(inst, t);
 
       double quarter = inst->xpeak / 2.0;
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
@@ -196,43 +199,54 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->xcntr++;
 
       // current sample 1 at 1/4 period
-      inst-> Ialph_k[1] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
-      inst-> Ibeta_k[1] = sqrt(3.0) * (Ic - Ib) / 3.0;
+      inst->Ialph_k[1] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
+      inst->Ibeta_k[1] = sqrt(3.0) * (Ic - Ib) / 3.0;
+
+      inst->Valph_k[1] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta_k[1]  = sqrt(3.0) * (Vc - Vb) / 3.0;
    }
 
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m)){
       inst->xcntr++;
 
       inst->Vdc = Vdc;
-    inst->Ids = Ids;
+      inst->Ids = Ids;
       inst->Iqs = Iqs;
 
-      inst->Valph = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
-      inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
       // current sample 2 at 1/2 period
-      inst-> Ialph_k[2] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
-      inst-> Ibeta_k[2] = sqrt(3.0) * (Ic - Ib) / 3.0;
+      inst->Ialph_k[2] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
+      inst->Ibeta_k[2] = sqrt(3.0) * (Ic - Ib) / 3.0;
+
+      inst->Valph_k[2] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta_k[2]  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
       inst->Ialph = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
       inst->Ibeta = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
 
-       dq_controller(inst, t);
+      inst->Valph = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
+      inst->Vbeta = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
+
+      calculate_theta(inst);
+      dq_controller(inst, t);
    }
 
    if((inst->t_prev <= inst->trg_q_f)&&(t >= inst->trg_q_f)){
       inst->xcntr++;
 
       // current sample 3 at 3/4 period
-      inst-> Ialph_k[3] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
-      inst-> Ibeta_k[3] = sqrt(3.0) * (Ic - Ib) / 3.0;
+      inst->Ialph_k[3] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
+      inst->Ibeta_k[3] = sqrt(3.0) * (Ic - Ib) / 3.0;
+
+      inst->Valph_k[3] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta_k[3]  = sqrt(3.0) * (Vc - Vb) / 3.0;
    }
 
    Valpha = inst->Vas;
    Vbeta  = inst->Vbs;
 
-   Vd = inst->dq.Vd;
-   Vq = inst->dq.Vq;
+   Vd = inst->Valph;
+   Vq = inst->Vbeta;
    Vdcf = inst->dq.Vdcf;
 
    theta = inst->theta;

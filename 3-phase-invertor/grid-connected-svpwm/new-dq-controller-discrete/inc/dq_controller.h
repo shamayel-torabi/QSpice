@@ -34,7 +34,7 @@ public:
         Vd = (1.0 + cos_wt) * vcd / 2.0 - sin_wt * vcq / 2.0;
         Vq = (1.0 + cos_wt) * vcq / 2.0 + sin_wt * vcd / 2.0;
 
-        Vdcf = max(vdc_lp(vdc), 1.0);
+        Vdcf = max(vdc_lp(vdc / 2.0), 1.0);
 
         Vd /= Vdcf;
         Vq /= Vdcf;
