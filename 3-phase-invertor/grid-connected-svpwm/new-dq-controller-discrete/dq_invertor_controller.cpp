@@ -79,6 +79,12 @@ struct sDQ_INVERTOR_CONTROLLER
    double Ialph;
    double Ibeta;
 
+   double Ialph_1;
+   double Ibeta_1;
+
+   double Ialph_2;
+   double Ibeta_2;
+
    double Ialph_k[4];
    double Ibeta_k[4];
 
@@ -90,6 +96,9 @@ struct sDQ_INVERTOR_CONTROLLER
 
    double Ids;
    double Iqs;
+
+   double Id;
+   double Iq;
 
    double theta;
    double sinValue;
@@ -107,13 +116,16 @@ void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst){
 
 void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
    double sinValue = inst->sinValue;
-   double cosValue = inst->cosValue;   
+   double cosValue = inst->cosValue;
 
    double Vd =  inst->Valph * cosValue + inst->Vbeta * sinValue;
    double Vq = -inst->Valph * sinValue + inst->Vbeta * cosValue;
 
    double Id =  inst->Ialph * cosValue + inst->Ibeta * sinValue;
    double Iq = -inst->Ialph * sinValue + inst->Ibeta * cosValue;
+
+   inst->Id = Id;
+   inst->Iq = Iq;
 
    inst->dq(inst->Ids, inst->Iqs, Id, Iq, Vd, Vq, inst->Vdc);
 
@@ -182,21 +194,30 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->Ids = Ids;
       inst->Iqs = Iqs;
 
-      inst->Ialph = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
-      inst->Ibeta = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
-      
-      inst->Valph = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
-      inst->Vbeta = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
-     
-      calculate_theta(inst);
-      dq_controller(inst, t);
-
       // current sample 0 at start of period
       inst->Ialph_k[0] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
       inst->Ibeta_k[0] = sqrt(3.0) * (Ic - Ib) / 3.0;
 
       inst->Valph_k[0] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta_k[0]  = sqrt(3.0) * (Vc - Vb) / 3.0;
+
+      double Iam = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
+      double Ibm = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
+
+      inst->Ialph = (Iam + 2.0 * inst->Ialph_1 + inst->Ialph_2) / 4.0;
+      inst->Ibeta = (Ibm + 2.0 * inst->Ibeta_1 + inst->Ibeta_2) / 4.0;
+
+      inst->Ialph_2 = inst->Ialph_1;
+      inst->Ialph   = Iam;
+
+      inst->Ibeta_2 = inst->Ibeta_1;
+      inst->Ibeta_1   = Ibm;
+
+      inst->Valph = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
+      inst->Vbeta = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
+
+      calculate_theta(inst);
+      dq_controller(inst, t);
 
       double quarter = inst->xpeak / 2.0;
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
@@ -225,6 +246,23 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
 
       inst->Valph_k[2] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta_k[2]  = sqrt(3.0) * (Vc - Vb) / 3.0;
+
+      double Iam = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
+      double Ibm = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
+
+      inst->Ialph = (Iam + 2.0 * inst->Ialph_1 + inst->Ialph_2) / 4.0;
+      inst->Ibeta = (Ibm + 2.0 * inst->Ibeta_1 + inst->Ibeta_2) / 4.0;
+
+      inst->Ialph_2 = inst->Ialph_1;
+      inst->Ialph   = Iam;
+
+      inst->Ibeta_2 = inst->Ibeta_1;
+      inst->Ibeta_1   = Ibm;
+
+      inst->Valph = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
+      inst->Vbeta = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
+
+      //dq_controller(inst, t);
    }
 
    if((inst->t_prev <= inst->trg_q_f)&&(t >= inst->trg_q_f)){
@@ -238,15 +276,14 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->Vbeta_k[3]  = sqrt(3.0) * (Vc - Vb) / 3.0;
    }
 
-   Valpha = inst->Var;
-   Vbeta  = inst->Vbr;
+   Valpha = inst->Id;
+   Vbeta  = inst->Iq;
 
-   Vd = inst->dq.Vd;
-   Vq = inst->dq.Vq;
+   Vd = inst->dq.ieLd;
+   Vq = inst->dq.ieLq;
+
    Vdcf = inst->dq.Vdcf;
-
    theta = inst->theta;
-
    inst->t_prev = t;
 }
 
