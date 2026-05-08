@@ -20,12 +20,12 @@ public:
         reset();
     }
 
-    void operator()(double iLds, double iLqs, double iLd, double iLq, double vod, double voq, double vdc){
-        ieLd = iLds - iLd;
-        ieLq = iLqs - iLq;
+    void operator()(double ids, double iqs, double id, double iq, double vod, double voq, double vdc){
+        ieLd = ids - id;
+        ieLq = iqs - iq;
 
-        double vcd = D_CC(ieLd, iLd, vod, voq);
-        double vcq = Q_CC(ieLq, iLq, vod, voq);
+        double vcd = D_CC(ieLd, id, vod, voq);
+        double vcq = Q_CC(ieLq, iq, vod, voq);
 
         vcd -= wl * iLq;
         vcq += wl * iLd;
