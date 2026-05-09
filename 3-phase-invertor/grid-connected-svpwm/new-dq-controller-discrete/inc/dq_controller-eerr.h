@@ -9,7 +9,7 @@ class DQController {
 public:
     DQController();
 
-    void init(double kp, double ki, double W, double L, double Ts, double Tf=0.002){
+    void init(double kp, double ki, double W, double L, double Ts, double Tf=0.08){
         Kp = kp;
         Ki = ki;
         wl = W * L;       
@@ -34,15 +34,8 @@ public:
 
         Vdcf = max(vdc_lp(vdc / 2.0), 1.0);
 
-        double U_ref = hypotf(Vd, Vq);
-        double theta = atan2(Vq, Vd);
-
-        if (U_ref > Vdcf) {
-            U_ref = Vdcf;
-        }
-        
-        Vd = U_ref * cos(theta);
-        Vq = U_ref * sin(theta);
+        Vd /= Vdcf;
+        Vq /= Vdcf;
     }
 
     void reset() {

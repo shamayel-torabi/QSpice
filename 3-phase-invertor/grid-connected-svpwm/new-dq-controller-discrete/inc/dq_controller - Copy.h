@@ -9,7 +9,7 @@ class DQController {
 public:
     DQController();
 
-    void init(double kp, double ki, double W, double L, double Ts, double Tf=0.002){
+    void init(double kp, double ki, double W, double L, double Ts, double Tf=0.02){
         Kp = kp;
         Ki = ki;
         wl = W * L;       
@@ -35,7 +35,7 @@ public:
         Vdcf = max(vdc_lp(vdc / 2.0), 1.0);
 
         double U_ref = hypotf(Vd, Vq);
-        double theta = atan2(Vq, Vd);
+        double theta = atan2(Vq,Vd);
 
         if (U_ref > Vdcf) {
             U_ref = Vdcf;
@@ -88,7 +88,7 @@ private:
 
     double D_CC(double ids, double ild_1, double vod_1, double voq_1){
         //estimate iLd
-        iLd = iLd_1 * cos_wt + (vcd_1 - vod_1) * sin_wt / wl - voq_1 * (1.0 - cos_wt) / wl;
+        iLd = ild_1 * cos_wt + (vcd_1 - vod_1) * sin_wt / wl - voq_1 * (1.0 - cos_wt) / wl;
 
         //calculate error
         double ieLd = ids - ild_1;
@@ -106,7 +106,7 @@ private:
     
     double Q_CC(double iqs, double ilq_1, double vod_1, double voq_1){
         //estimate iLq
-        iLq = iLq_1 * cos_wt + (vcq_1 - voq_1) * sin_wt / wl - vod_1 * (-1.0 + cos_wt) / wl;
+        iLq = ilq_1 * cos_wt + (vcq_1 - voq_1) * sin_wt / wl - vod_1 * (-1.0 + cos_wt) / wl;
 
         //calculate error
         double ieLq = iqs - ilq_1;

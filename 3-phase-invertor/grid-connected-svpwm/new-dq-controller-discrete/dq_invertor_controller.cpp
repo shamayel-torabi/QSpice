@@ -103,22 +103,22 @@ struct sDQ_INVERTOR_CONTROLLER
    double Iq;
 
    double theta;
-   double sinValue;
-   double cosValue;
 
    DSOGI dsogi;
    DQController dq;
 };
 
-void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst){
-   inst->theta = inst->dsogi(inst->Valph, inst->Vbeta);
-   inst->sinValue = sin(inst->theta);
-   inst->cosValue = cos(inst->theta);
-};
+// void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst){
+//    inst->theta = inst->dsogi(inst->Valph, inst->Vbeta);
+//    inst->sinValue = sin(inst->theta);
+//    inst->cosValue = cos(inst->theta);
+// };
 
-void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
-   double sinValue = inst->sinValue;
-   double cosValue = inst->cosValue;
+void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst){
+   double theta = inst->dsogi(inst->Valph, inst->Vbeta);
+
+   double sinValue = sin(theta);;
+   double cosValue = cos(theta);
 
    double Vd =  inst->Valph * cosValue + inst->Vbeta * sinValue;
    double Vq = -inst->Valph * sinValue + inst->Vbeta * cosValue;
@@ -126,13 +126,13 @@ void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst, double t){
    double Id =  inst->Ialph * cosValue + inst->Ibeta * sinValue;
    double Iq = -inst->Ialph * sinValue + inst->Ibeta * cosValue;
 
-   inst->Id = Id;
-   inst->Iq = Iq;
-
    inst->dq(inst->Ids, inst->Iqs, Id, Iq, Vd, Vq, inst->Vdc);
 
+   inst->Id = Id;
+   inst->Iq = Iq;
    inst->Var = cosValue * inst->dq.Vd - sinValue * inst->dq.Vq;
    inst->Vbr = sinValue * inst->dq.Vd + cosValue * inst->dq.Vq;
+   inst->theta = theta;
 };
 
 extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR_CONTROLLER **opaque, double t, union uData *data)
@@ -220,8 +220,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->Valph = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
       inst->Vbeta = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
 
-      calculate_theta(inst);
-      dq_controller(inst, t);
+      dq_controller(inst);
 
       double quarter = inst->xpeak / 2.0;
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
@@ -262,11 +261,6 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
 
       inst->Ibeta_2 = inst->Ibeta_1;
       inst->Ibeta_1   = Ibm;
-
-      inst->Valph = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
-      inst->Vbeta = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
-
-      //dq_controller(inst, t);
    }
 
    if((inst->t_prev <= inst->trg_q_f)&&(t >= inst->trg_q_f)){
