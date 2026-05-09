@@ -19,6 +19,8 @@ public:
         F = f;
         omega = 2 * PI * F;
         theta = 0.0;
+        //sync = false;
+
         pi_controller.init(Kp, Ki, Ts);
         integrator.init(Ts);
         sogi_a.init(Ts);
@@ -46,11 +48,17 @@ public:
         double v = Vq / max(Vm, 1e-4);
         
         omega_err = pi_controller(v);
+
+        // if(fabs(omega_err) < 2 * PI * F / 10000)
+        //     sync = true;
+        
         omega = omega_err + 2 * PI * F;
         theta = integrator(omega);
 
         return theta;
     };
+    
+    //bool   sync;
 
     double theta;
     double omega;
@@ -60,7 +68,6 @@ public:
     double Vq;
     double Va;
     double Vb;
-
 protected:
     double F;
 

@@ -9,7 +9,7 @@ class DQController {
 public:
     DQController();
 
-    void init(double kp, double ki, double W, double L, double Ts, double Tf=0.005){
+    void init(double kp, double ki, double W, double L, double Ts, double Tf=0.05){
         Kp = kp;
         Ki = ki;
         wl = W * L;       
@@ -17,14 +17,15 @@ public:
         cos_wt = cos(W * Ts);
 
         vdc_lp.init(Tf, Ts);
-        d_pi.init(kp, ki, Ts);
-        q_pi.init(kp, ki, Ts);
         reset();
     }
 
     void operator()(double ids, double iqs, double id, double iq, double vod, double voq, double vdc){
-        double vcd = D_CC(ids, id, vod, voq);
-        double vcq = Q_CC(iqs, iq, vod, voq);
+        ieLd = ids - id;
+        ieLq = iqs - iq;
+
+        double vcd = D_CC(ieLd, id, vod, voq);
+        double vcq = Q_CC(ieLq, iq, vod, voq);
 
         vcd -= wl * iLq;
         vcq += wl * iLd;
@@ -76,39 +77,25 @@ private:
     double vcq_1;
 
     LowPassFilter vdc_lp;
-    PIController  d_pi;
-    PIController  q_pi;
 
-    double D_CC(double ids, double ild_1, double vod_1, double voq_1){
-        //estimate iLd
-        iLd = iLd_1 * cos_wt + (vcd_1 - vod_1) * sin_wt / wl - voq_1 * (1.0 - cos_wt) / wl;
+    double D_CC(double ied, double ild_1, double vod_1, double voq_1){
+        double ierrLd = Ki * ied + ierrLd_1;
+        iLd = ild_1 * cos_wt + (vcd_1 - vod_1) * sin_wt / wl - voq_1 * (1.0 - cos_wt) / wl;
+        double vcd = ierrLd - Kp * iLd; 
 
-        //calculate error
-        double ieLd = ids - ild_1;
-
-        //calculate pi-controller output
-        double vcd = d_pi(ieLd);
-
-        //store value
-        ierrLd_1 = ieLd;
+        ierrLd_1 = ierrLd;
         iLd_1 = iLd;
         vcd_1 = vcd;
 
         return vcd;
     }
     
-    double Q_CC(double iqs, double ilq_1, double vod_1, double voq_1){
-        //estimate iLq
-        iLq = iLq_1 * cos_wt + (vcq_1 - voq_1) * sin_wt / wl - vod_1 * (-1.0 + cos_wt) / wl;
-
-        //calculate error
-        double ieLq = iqs - ilq_1;
-
-        //calculate pi-controller output
-        double vcq = q_pi(ieLq);
+    double Q_CC(double ieq, double ilq_1, double vod_1, double voq_1){
+        double ierrLq = Ki * ieq + ierrLq_1;
+        iLq = ilq_1 * cos_wt + (vcq_1 - voq_1) * sin_wt / wl - vod_1 * (-1.0 + cos_wt) / wl;
+        double vcq = ierrLq - Kp * iLq;
         
-        //store value
-        ierrLq_1 = ieLq;
+        ierrLq_1 = ierrLq;
         iLq_1 = iLq;
         vcq_1 = vcq;
 

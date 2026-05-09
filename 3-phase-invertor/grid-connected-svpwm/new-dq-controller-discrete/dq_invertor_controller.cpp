@@ -289,7 +289,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    Id = inst->Id;
    Iq = inst->Iq;
 
-   Vdcf = inst->dq.ieLd;
+   Vdcf = inst->dq.Vdcf;
    theta = inst->theta;
    inst->t_prev = t;
 }
