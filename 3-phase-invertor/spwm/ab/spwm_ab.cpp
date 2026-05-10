@@ -42,9 +42,6 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef g4
 #undef g5
 #undef g6
-#undef ma
-#undef mb
-#undef mc
 
 
 struct sSPWM_AB
@@ -83,19 +80,16 @@ struct sSPWM_AB
 
 extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t, union uData *data)
 {
-   double  Valpha = data[ 0].d; // input
-   double  Vbeta  = data[ 1].d; // input
-   double  Fsw    = data[ 2].d; // input parameter
-   double  Fclk   = data[ 3].d; // input parameter
-   double &g1     = data[ 4].d; // output
-   double &g2     = data[ 5].d; // output
-   double &g3     = data[ 6].d; // output
-   double &g4     = data[ 7].d; // output
-   double &g5     = data[ 8].d; // output
-   double &g6     = data[ 9].d; // output
-   double &ma     = data[10].d; // output
-   double &mb     = data[11].d; // output
-   double &mc     = data[12].d; // output
+   double  Valpha = data[0].d; // input
+   double  Vbeta  = data[1].d; // input
+   double  Fsw    = data[2].d; // input parameter
+   double  Fclk   = data[3].d; // input parameter
+   double &g1     = data[4].d; // output
+   double &g2     = data[5].d; // output
+   double &g3     = data[6].d; // output
+   double &g4     = data[7].d; // output
+   double &g5     = data[8].d; // output
+   double &g6     = data[9].d; // output
 
    if(!*opaque)
    {
@@ -203,18 +197,6 @@ extern "C" __declspec(dllexport) void spwm_ab(struct sSPWM_AB **opaque, double t
    g4 = (inst->g6) ? -7.0 :15.0;
    g5 = (inst->g3) ? -7.0 :15.0;
    g6 = (inst->g4) ? -7.0 :15.0;
-
-
-   // g1 = (inst->g1) ? 15.0 : -7.0;
-   // g2 = (inst->g2) ? 15.0 : -7.0;
-   // g3 = (inst->g3) ? 15.0 : -7.0;
-   // g4 = (inst->g4) ? 15.0 : -7.0;
-   // g5 = (inst->g5) ? 15.0 : -7.0;
-   // g6 = (inst->g6) ? 15.0 : -7.0;
-
-   ma = inst->pwm.ma;
-   mb = inst->pwm.mb;
-   mc = inst->pwm.mc;
 
    inst->t_prev = t;
 }
