@@ -79,12 +79,11 @@ struct sDQ_INVERTOR_CONTROLLER
    double Vbeta;
 
    double Ialph;
-   double Ibeta;
-
    double Ialph_1;
-   double Ibeta_1;
-
    double Ialph_2;
+
+   double Ibeta;
+   double Ibeta_1;
    double Ibeta_2;
 
    double Ialph_k[4];
