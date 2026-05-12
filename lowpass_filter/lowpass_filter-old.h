@@ -12,23 +12,22 @@ public:
      */
     LowPassFilter();
 	void init(double tf, double ts){
-		double tstf = ts/tf;
-		b0 = (2.0 - tstf)/(2.0 + tstf);
-		a0 = tstf/(2.0 + tstf);
+		Tf = tf;
+		Ts = ts;
 	}
 
     double operator() (double x){
-		double y = b0 * y_prev + a0 * (x + x_prev);
+		double alpha = Tf/(Tf + Ts);
+		double y = alpha * y_prev + (1.0 - alpha) * x;
 		y_prev = y;
-		x_prev = x;
 		return y;
 	}
 	
+    double Tf; //!< Low pass filter time constant
+	double Ts;
+
 protected:
-	double a0;
-	double b0;
-    double y_prev;
-	double x_prev;
+    double y_prev; //!< filtered value in previous execution step 
 };
 
 #endif // LOWPASS_FILTER_H
