@@ -44,11 +44,7 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Ia
 #undef Ib
 #undef Ic
-#undef Ioa
-#undef Iob
-#undef Ioc
-#undef P
-#undef Q
+#undef Vset
 #undef Vdc
 #undef Valph
 #undef Vbeta
@@ -74,7 +70,9 @@ struct sDQ_INVERTOR_CONTROLLER
    double F;
    double Fsw;
    double L;
+
    double Vdc;
+   double Vset;
 
    double Valph;
    double Vbeta;
@@ -82,14 +80,8 @@ struct sDQ_INVERTOR_CONTROLLER
    double Ialph;
    double Ibeta;
 
-   double Io_alph;
-   double Io_beta;
-
    double Var;
    double Vbr;
-
-   double P;
-   double Q;
 
    double Id;
    double Iq;
@@ -109,18 +101,14 @@ void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst){
 
    dq_type in;
 
-   in.Vdc = inst->Vdc;
-   in.P = inst->P;
-   in.Q = inst->Q;
+   in.Vdc  = inst->Vdc;
+   in.Vset = inst->Vset;
 
    in.Vod =  inst->Valph * cosValue + inst->Vbeta * sinValue;
    in.Voq = -inst->Valph * sinValue + inst->Vbeta * cosValue;
 
    in.ILd =  inst->Ialph * cosValue + inst->Ibeta * sinValue;
    in.ILq = -inst->Ialph * sinValue + inst->Ibeta * cosValue;
-
-   in.Iod =  inst->Io_alph * cosValue + inst->Io_beta * sinValue;
-   in.Ioq = -inst->Io_alph * sinValue + inst->Io_beta * cosValue;
 
    inst->dq(&in);
 
@@ -139,26 +127,22 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    double  Ia    = data[ 3].d; // input
    double  Ib    = data[ 4].d; // input
    double  Ic    = data[ 5].d; // input
-   double  Ioa   = data[ 6].d; // input
-   double  Iob   = data[ 7].d; // input
-   double  Ioc   = data[ 8].d; // input
-   double  P     = data[ 9].d; // input
-   double  Q     = data[10].d; // input
-   double  Vdc   = data[11].d; // input
-   double  Fsw   = data[12].d; // input parameter
-   double  F     = data[13].d; // input parameter
-   double  L     = data[14].d; // input parameter
-   double  Kp    = data[15].d; // input parameter
-   double  Ki    = data[16].d; // input parameter
-   double  Fclk  = data[17].d; // input parameter
-   double &Valph = data[18].d; // output
-   double &Vbeta = data[19].d; // output
-   double &Vq    = data[20].d; // output
-   double &Vd    = data[21].d; // output
-   double &Iq    = data[22].d; // output
-   double &Id    = data[23].d; // output
-   double &Vdcf  = data[24].d; // output
-   double &theta = data[25].d; // output
+   double  Vset  = data[ 6].d; // input
+   double  Vdc   = data[ 7].d; // input
+   double  Fsw   = data[ 8].d; // input parameter
+   double  F     = data[ 9].d; // input parameter
+   double  L     = data[10].d; // input parameter
+   double  Kp    = data[11].d; // input parameter
+   double  Ki    = data[12].d; // input parameter
+   double  Fclk  = data[13].d; // input parameter
+   double &Valph = data[14].d; // output
+   double &Vbeta = data[15].d; // output
+   double &Vq    = data[16].d; // output
+   double &Vd    = data[17].d; // output
+   double &Iq    = data[18].d; // output
+   double &Id    = data[19].d; // output
+   double &Vdcf  = data[20].d; // output
+   double &theta = data[21].d; // output
 
 
    if(!*opaque)
@@ -202,18 +186,14 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m)){
       inst->xcntr++;
 
-      inst->Vdc = Vdc;
-      inst->P = P;
-      inst->Q = Q;
+      inst->Vdc  = Vdc;
+      inst->Vset = Vset;
 
       inst->Valph = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
       inst->Ialph = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
       inst->Ibeta = sqrt(3.0) * (Ic - Ib) / 3.0;
-
-      inst->Io_alph = 2.0 * (Ioa - 0.5 * (Iob + Ioc)) / 3.0;
-      inst->Io_beta = sqrt(3.0) * (Ioc - Iob) / 3.0;
    }
 
    Valph = inst->Var;

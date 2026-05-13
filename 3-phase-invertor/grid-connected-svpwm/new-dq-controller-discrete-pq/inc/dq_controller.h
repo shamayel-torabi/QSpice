@@ -7,14 +7,11 @@
 
 typedef struct {
     double Vdc;
-    double P;
-    double Q;
+    double Vset;
     double ILd;
     double ILq;
     double Vod;
     double Voq;
-    double Iod;
-    double Ioq;
 } dq_type;
 
 class DQController {
@@ -32,17 +29,15 @@ public:
         vdc_lp.init(Tf, ts);
 
         p_pi_controller.init(0.5, 242.3, ts, 15.0);
-        q_pi_controller.init(0.5, 242.3, ts, 15.0);
 
         reset();
     }
 
     void operator()(dq_type* in){
-        IerrLd = p_pi_controller(in->P - in->Vod);
-        IerrLq = q_pi_controller(in->Q - in->Voq);
+        double ILds = p_pi_controller(in->Vset - in->Vdc);
 
-        double vcd = D_CC(in->ILd, in->Vod, in->Voq);
-        double vcq = Q_CC(in->ILq, in->Vod, in->Voq);
+        double vcd = D_CC(ILds, in->ILd, in->Vod, in->Voq);
+        double vcq = Q_CC(0,    in->ILq, in->Vod, in->Voq);
 
         vcd -= wl * ILq;
         vcq += wl * ILd;
@@ -63,10 +58,7 @@ public:
         Viq = U_ref * sin(theta);
     }
 
-    void reset() {
-        //iLd_1 = 0.0;
-        //iLq_1 = 0.0;
-        
+    void reset() {       
         vcd_1 = 0.0;
         vcq_1 = 0.0;
 
@@ -95,9 +87,6 @@ private:
     double cos_wt;
     double wl;
 
-    //double iLd_1;
-    //double iLq_1;
-
     double vcd_1;
     double vcq_1;
 
@@ -109,10 +98,10 @@ private:
     
     LowPassFilter vdc_lp;
     PIController p_pi_controller;
-    PIController q_pi_controller;
 
-    double D_CC(double ild_1, double vod_1, double voq_1){
+    double D_CC(double ids, double ild_1, double vod_1, double voq_1){
         //double err_output_d = err_output_d_1 + Ki * IerrLd;
+        IerrLd = ids - ild_1;
         double err_output_d = err_output_d_1 + Ki * Ts * 0.5 * (IerrLd + ierr_d_1);        
         
         ILd = ild_1 * cos_wt + (vcd_1 - vod_1) * sin_wt / wl - voq_1 * (1.0 - cos_wt) / wl;
@@ -126,8 +115,9 @@ private:
         return vcd;
     }
     
-    double Q_CC(double ilq_1, double vod_1, double voq_1){
+    double Q_CC(double iqs, double ilq_1, double vod_1, double voq_1){
         //double err_output_q = err_output_q_1 + Ki * IerrLq;
+        IerrLq = iqs - ilq_1;
         double err_output_q = err_output_q_1 + Ki * Ts * 0.5 * (IerrLq + ierr_d_1);
         
         ILq = ilq_1 * cos_wt + (vcq_1 - voq_1) * sin_wt / wl - vod_1 * (-1.0 + cos_wt) / wl;
