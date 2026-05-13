@@ -67,8 +67,6 @@ struct sDQ_INVERTOR_CONTROLLER
 
    double trg_e;   // trigger at start period
    double trg_m;   // trigger at half period
-   double trg_q_r; // trigger at quarter rise period
-   double trg_q_f; // trigger at quarter fall period
 
    double F;
    double Fsw;
@@ -107,30 +105,29 @@ struct sDQ_INVERTOR_CONTROLLER
    DQController dq;
 };
 
-// void calculate_theta(struct sDQ_INVERTOR_CONTROLLER *inst){
-//    inst->theta = inst->dsogi(inst->Valph, inst->Vbeta);
-//    inst->sinValue = sin(inst->theta);
-//    inst->cosValue = cos(inst->theta);
-// };
 
 void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst){
    double theta = inst->dsogi(inst->Valph, inst->Vbeta);
 
-   double sinValue = sin(theta);;
+   double sinValue = sin(theta);
    double cosValue = cos(theta);
 
-   double Vd =  inst->Valph * cosValue + inst->Vbeta * sinValue;
-   double Vq = -inst->Valph * sinValue + inst->Vbeta * cosValue;
+   dq_type in;
 
-   double Id =  inst->Ialph * cosValue + inst->Ibeta * sinValue;
-   double Iq = -inst->Ialph * sinValue + inst->Ibeta * cosValue;
+   in.Vdc = inst->Vdc;
+   in.Ids = inst->Ids;
+   in.Iqs = inst->Iqs;
+   in.Vod =  inst->Valph * cosValue + inst->Vbeta * sinValue;
+   in.Voq = -inst->Valph * sinValue + inst->Vbeta * cosValue;
+   in.ILd =  inst->Ialph * cosValue + inst->Ibeta * sinValue;
+   in.ILq = -inst->Ialph * sinValue + inst->Ibeta * cosValue;
 
-   inst->dq(inst->Ids, inst->Iqs, Id, Iq, Vd, Vq, inst->Vdc);
+   inst->dq(&in);
 
-   inst->Id = Id;
-   inst->Iq = Iq;
-   inst->Var = cosValue * inst->dq.Vd - sinValue * inst->dq.Vq;
-   inst->Vbr = sinValue * inst->dq.Vd + cosValue * inst->dq.Vq;
+   inst->Id = in.ILd;
+   inst->Iq = in.ILq;
+   inst->Var = cosValue * inst->dq.Vid - sinValue * inst->dq.Viq;
+   inst->Vbr = sinValue * inst->dq.Vid + cosValue * inst->dq.Viq;
    inst->theta = theta;
 };
 
@@ -193,106 +190,35 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      inst->Vdc = Vdc;
-      inst->Ids = Ids;
-      inst->Iqs = Iqs;
-
-      // current sample 0 at start of period
-
-      inst->Valph_k[0] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
-      inst->Vbeta_k[0]  = sqrt(3.0) * (Vc - Vb) / 3.0;
-
-      inst->Ialph_k[0] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
-      inst->Ibeta_k[0] = sqrt(3.0) * (Ic - Ib) / 3.0;
-
-
-      // double Vam = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
-      // double Vbm = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
-
-      // inst->Valph = (Vam + 2.0 * inst->Valph_1 + inst->Valph_2) / 4.0;
-      // inst->Vbeta = (Vbm + 2.0 * inst->Vbeta_1 + inst->Vbeta_2) / 4.0;
-
-      // inst->Valph_2 = inst->Valph_1;
-      // inst->Valph   = Vam;
-
-      // inst->Vbeta_2 = inst->Vbeta_1;
-      // inst->Vbeta_1   = Vbm;
-
-      double Iam = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
-      double Ibm = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
-
-      inst->Ialph = (Iam + 2.0 * inst->Ialph_1 + inst->Ialph_2) / 4.0;
-      inst->Ibeta = (Ibm + 2.0 * inst->Ibeta_1 + inst->Ibeta_2) / 4.0;
-
-      inst->Ialph_2 = inst->Ialph_1;
-      inst->Ialph   = Iam;
-
-      inst->Ibeta_2 = inst->Ibeta_1;
-      inst->Ibeta_1   = Ibm;
-
-
       dq_controller(inst);
 
       double quarter = inst->xpeak / 2.0;
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
-      inst->trg_q_r = inst->trg_e + quarter / inst->mcu_clk;
-      inst->trg_q_f = inst->trg_e + (2 * inst->xpeak - quarter) / inst->mcu_clk;
       inst->trg_e   = inst->trg_e + 2 * inst->xpeak /  inst->mcu_clk;
-   }
-
-   if((inst->t_prev <= inst->trg_q_r)&&(t >= inst->trg_q_r)){
-      inst->xcntr++;
-
-      // current sample 1 at 1/4 period
-      inst->Ialph_k[1] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
-      inst->Ibeta_k[1] = sqrt(3.0) * (Ic - Ib) / 3.0;
-
-      inst->Valph_k[1] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
-      inst->Vbeta_k[1]  = sqrt(3.0) * (Vc - Vb) / 3.0;
    }
 
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m)){
       inst->xcntr++;
 
-      // current sample 2 at 1/2 period
-      inst->Ialph_k[2] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
-      inst->Ibeta_k[2] = sqrt(3.0) * (Ic - Ib) / 3.0;
+      inst->Vdc = Vdc;
+      inst->Ids = Ids;
+      inst->Iqs = Iqs;
 
-      inst->Valph_k[2] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
-      inst->Vbeta_k[2]  = sqrt(3.0) * (Vc - Vb) / 3.0;
+      inst->Valph = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
-      double Iam = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
-      double Ibm = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
-
-      inst->Ialph = (Iam + 2.0 * inst->Ialph_1 + inst->Ialph_2) / 4.0;
-      inst->Ibeta = (Ibm + 2.0 * inst->Ibeta_1 + inst->Ibeta_2) / 4.0;
-
-      inst->Ialph_2 = inst->Ialph_1;
-      inst->Ialph   = Iam;
-
-      inst->Ibeta_2 = inst->Ibeta_1;
-      inst->Ibeta_1   = Ibm;
-   }
-
-   if((inst->t_prev <= inst->trg_q_f)&&(t >= inst->trg_q_f)){
-      inst->xcntr++;
-
-      // current sample 3 at 3/4 period
-      inst->Ialph_k[3] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
-      inst->Ibeta_k[3] = sqrt(3.0) * (Ic - Ib) / 3.0;
-
-      inst->Valph_k[3] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
-      inst->Vbeta_k[3]  = sqrt(3.0) * (Vc - Vb) / 3.0;
+      inst->Ialph = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
+      inst->Ibeta = sqrt(3.0) * (Ic - Ib) / 3.0;
    }
 
    Valph = inst->Var;
    Vbeta = inst->Vbr;
 
-   Vd = inst->dq.Vd;
-   Vq = inst->dq.Vq;
+   Vd = inst->dq.Vid;
+   Vq = inst->dq.Viq;
 
-   Id = inst->Id;
-   Iq = inst->Iq;
+   Id = inst->dq.IerrLd;
+   Iq = inst->dq.IerrLq;
 
    Vdcf = inst->dq.Vdcf;
    theta = inst->theta;

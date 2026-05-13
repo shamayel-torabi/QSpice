@@ -44,8 +44,8 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Ic
 #undef Ib
 #undef Ia
-#undef p
-#undef q
+#undef Ids
+#undef Iqs
 #undef Vdc
 #undef Valph
 #undef Vbeta
@@ -55,9 +55,6 @@ int __stdcall DllMain(void *module, unsigned int reason, void *reserved) { retur
 #undef Vdcf
 #undef Id
 #undef Iq
-#undef Ioa
-#undef Iob
-#undef Ioc
 
 struct sDQ_INVERTOR_CONTROLLER
 {
@@ -76,22 +73,35 @@ struct sDQ_INVERTOR_CONTROLLER
    double F;
    double Fsw;
    double L;
-
    double Vdc;
-   double P;
-   double Q;
 
    double Valph;
+   double Valph_1;
+   double Valph_2;
+
    double Vbeta;
+   double Vbeta_1;
+   double Vbeta_2;
 
    double Ialph;
-   double Ibeta;
+   double Ialph_1;
+   double Ialph_2;
 
-   double Io_alph;
-   double Io_beta;
+   double Ibeta;
+   double Ibeta_1;
+   double Ibeta_2;
+
+   double Ialph_k[4];
+   double Ibeta_k[4];
+
+   double Valph_k[4];
+   double Vbeta_k[4];
 
    double Var;
    double Vbr;
+
+   double Ids;
+   double Iqs;
 
    double Id;
    double Iq;
@@ -102,31 +112,22 @@ struct sDQ_INVERTOR_CONTROLLER
    DQController dq;
 };
 
+
 void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst){
+   double theta = inst->dsogi(inst->Valph, inst->Vbeta);
+
+   double sinValue = sin(theta);
+   double cosValue = cos(theta);
+
    dq_type in;
 
-   double Valph = inst->Valph;
-   double Vbeta = inst->Vbeta;
-   
-   double Ialph = inst->Ialph;
-   double Ibeta = inst->Ibeta;
-   
-   double Io_alph = inst->Io_alph;
-   double Io_beta = inst->Io_beta;
-   
-   double theta = inst->dsogi(Valph, Vbeta);   
-   double sinValue = sin(inst->theta);
-   double cosValue = cos(inst->theta);
-      
    in.Vdc = inst->Vdc;
-   in.P = inst->P;
-   in.Q = inst->Q;
-   in.Vod =  Valph * cosValue + Vbeta * sinValue;
-   in.Voq = -Valph * sinValue + Vbeta * cosValue;
-   in.ILd =  Ialph * cosValue + Ibeta * sinValue;
-   in.ILq = -Ialph * sinValue + Ibeta * cosValue;
-   in.Iod =  Io_alph * cosValue + Io_beta * sinValue;
-   in.Ioq = -Io_alph * sinValue + Io_beta * cosValue;
+   in.Ids = inst->Ids;
+   in.Iqs = inst->Iqs;
+   in.Vod =  inst->Valph * cosValue + inst->Vbeta * sinValue;
+   in.Voq = -inst->Valph * sinValue + inst->Vbeta * cosValue;
+   in.ILd =  inst->Ialph * cosValue + inst->Ibeta * sinValue;
+   in.ILq = -inst->Ialph * sinValue + inst->Ibeta * cosValue;
 
    inst->dq(&in);
 
@@ -145,26 +146,23 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    double  Ic    = data[ 3].d; // input
    double  Ib    = data[ 4].d; // input
    double  Ia    = data[ 5].d; // input
-   double  p     = data[ 6].d; // input
-   double  q     = data[ 7].d; // input
+   double  Ids   = data[ 6].d; // input
+   double  Iqs   = data[ 7].d; // input
    double  Vdc   = data[ 8].d; // input
-   double  Ioa   = data[ 9].d; // input
-   double  Iob   = data[10].d; // input
-   double  Ioc   = data[11].d; // input
-   double  Fsw   = data[12].d; // input parameter
-   double  F     = data[13].d; // input parameter
-   double  L     = data[14].d; // input parameter
-   double  Kp    = data[15].d; // input parameter
-   double  Ki    = data[16].d; // input parameter
-   double  Fclk  = data[17].d; // input parameter
-   double &Valph = data[18].d; // output
-   double &Vbeta = data[19].d; // output
-   double &Vq    = data[20].d; // output
-   double &Vd    = data[21].d; // output
-   double &theta = data[22].d; // output
-   double &Vdcf  = data[23].d; // output
-   double &Id    = data[24].d; // output
-   double &Iq    = data[25].d; // output
+   double  Fsw   = data[ 9].d; // input parameter
+   double  F     = data[10].d; // input parameter
+   double  L     = data[11].d; // input parameter
+   double  Kp    = data[12].d; // input parameter
+   double  Ki    = data[13].d; // input parameter
+   double  Fclk  = data[14].d; // input parameter
+   double &Valph = data[15].d; // output
+   double &Vbeta = data[16].d; // output
+   double &Vq    = data[17].d; // output
+   double &Vd    = data[18].d; // output
+   double &theta = data[19].d; // output
+   double &Vdcf  = data[20].d; // output
+   double &Id    = data[21].d; // output
+   double &Iq    = data[22].d; // output
 
 
    if(!*opaque)
@@ -199,19 +197,37 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->xcntr++;
       inst->maxstep = inst->xpeak / inst->mcu_clk;
 
-      inst->Vdc = Vdc;
-      inst->P = p;
-      inst->Q = q;
+      //current sample 0 at start of period
+      inst->Ialph_k[0] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
+      inst->Ibeta_k[0] = sqrt(3.0) * (Ic - Ib) / 3.0;
 
-      inst->Valph = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
-      inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
+      inst->Valph_k[0] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta_k[0]  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
-      inst->Ialph = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
-      inst->Ibeta = sqrt(3.0) * (Ic - Ib) / 3.0;
+      double Iam = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
+      double Ibm = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
 
-      inst->Io_alph = 2.0 * (Ioa - 0.5 * (Iob + Ioc)) / 3.0;;
-      inst->Io_beta = sqrt(3.0) * (Ioc - Iob) / 3.0;
-      
+      inst->Ialph = (Iam + 2.0 * inst->Ialph_1 + inst->Ialph_2) / 4.0;
+      inst->Ibeta = (Ibm + 2.0 * inst->Ibeta_1 + inst->Ibeta_2) / 4.0;
+
+      inst->Ialph_2 = inst->Ialph_1;
+      inst->Ialph_1   = Iam;
+
+      inst->Ibeta_2 = inst->Ibeta_1;
+      inst->Ibeta_1   = Ibm;
+
+      double Vam = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
+      double Vbm = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
+
+      inst->Valph = (Vam + 2.0 * inst->Valph_1 + inst->Valph_2) / 4.0;
+      inst->Vbeta = (Vbm + 2.0 * inst->Vbeta_1 + inst->Vbeta_2) / 4.0;
+
+      inst->Valph_2 = inst->Valph_1;
+      inst->Valph_1   = Vam;
+
+      inst->Vbeta_2 = inst->Vbeta_1;
+      inst->Vbeta_1   = Vbm;
+
       dq_controller(inst);
 
       double quarter = inst->xpeak / 2.0;
@@ -225,77 +241,67 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->xcntr++;
 
       // current sample 1 at 1/4 period
-      // inst->Valph_k[1] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
-      // inst->Vbeta_k[1]  = sqrt(3.0) * (Vc - Vb) / 3.0;
+      inst->Ialph_k[1] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
+      inst->Ibeta_k[1] = sqrt(3.0) * (Ic - Ib) / 3.0;
 
-      // inst->Ialph_k[1] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
-      // inst->Ibeta_k[1] = sqrt(3.0) * (Ic - Ib) / 3.0;
-      
-      // inst->Io_alph_k[1] = 2.0 * (Ioa - 0.5 * (Iob + Ioc)) / 3.0;;
-      // inst->Io_beta_k[1] = sqrt(3.0) * (Ioc - Iob) / 3.0;
+      inst->Valph_k[1] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta_k[1]  = sqrt(3.0) * (Vc - Vb) / 3.0;
    }
 
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m)){
       inst->xcntr++;
 
-      // double Vam = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
-      // double Vbm = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
+      inst->Vdc = Vdc;
+      inst->Ids = Ids;
+      inst->Iqs = Iqs;
 
-      // inst->Valph = (Vam + 2.0 * inst->Valph_1 + inst->Valph_2) / 4.0;
-      // inst->Vbeta = (Vbm + 2.0 * inst->Vbeta_1 + inst->Vbeta_2) / 4.0;
+      inst->Valph = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
-      // inst->Valph_2 = inst->Valph_1;
-      // inst->Valph_1 = Vam;
+      inst->Ialph = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
+      inst->Ibeta = sqrt(3.0) * (Ic - Ib) / 3.0;
 
-      // inst->Vbeta_2 = inst->Vbeta_1;
-      // inst->Vbeta_1   = Vbm;
+      // current sample 2 at 1/2 period
+      inst->Ialph_k[2] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;
+      inst->Ibeta_k[2] = sqrt(3.0) * (Ic - Ib) / 3.0;
 
-      // double Iam = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
-      // double Ibm = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
+      inst->Valph_k[2] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta_k[2]  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
-      // inst->Ialph = (Iam + 2.0 * inst->Ialph_1 + inst->Ialph_2) / 4.0;
-      // inst->Ibeta = (Ibm + 2.0 * inst->Ibeta_1 + inst->Ibeta_2) / 4.0;
+      double Iam = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
+      double Ibm = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
 
-      // inst->Ialph_2 = inst->Ialph_1;
-      // inst->Ialph_1   = Iam;
+      inst->Ialph = (Iam + 2.0 * inst->Ialph_1 + inst->Ialph_2) / 4.0;
+      inst->Ibeta = (Ibm + 2.0 * inst->Ibeta_1 + inst->Ibeta_2) / 4.0;
 
-      // inst->Ibeta_2 = inst->Ibeta_1;
-      // inst->Ibeta_1 = Ibm;
+      inst->Ialph_2 = inst->Ialph_1;
+      inst->Ialph   = Iam;
 
-      // double Ioam = (inst->Io_alph_k[0] + inst->Io_alph_k[1] + inst->Io_alph_k[2] + inst->Io_alph_k[3]) / 4.0;
-      // double Iobm = (inst->Io_beta_k[0] + inst->Io_beta_k[1] + inst->Io_beta_k[2] + inst->Io_beta_k[3]) / 4.0;
+      inst->Ibeta_2 = inst->Ibeta_1;
+      inst->Ibeta_1   = Ibm;
 
-      // inst->Io_alph = (Ioam + 2.0 * inst->Io_alph_1 + inst->Io_alph_2) / 4.0;
-      // inst->Io_beta = (Iobm + 2.0 * inst->Io_beta_1 + inst->Io_beta_2) / 4.0;
+      double Vam = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
+      double Vbm = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
 
-      // inst->Io_alph_2 = inst->Io_alph_1;
-      // inst->Io_alph_1   = Ioam;
+      inst->Valph = (Vam + 2.0 * inst->Valph_1 + inst->Valph_2) / 4.0;
+      inst->Vbeta = (Vbm + 2.0 * inst->Vbeta_1 + inst->Vbeta_2) / 4.0;
 
-      // inst->Io_beta_2 = inst->Io_beta_1;
-      // inst->Io_beta_1   = Iobm;
-     
-      // inst->Valph_k[2] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
-      // inst->Vbeta_k[2]  = sqrt(3.0) * (Vc - Vb) / 3.0;
+      inst->Valph_2 = inst->Valph_1;
+      inst->Valph_1   = Vam;
 
-      // inst->Ialph_k[2] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
-      // inst->Ibeta_k[2] = sqrt(3.0) * (Ic - Ib) / 3.0;
-      
-      // inst->Io_alph_k[2] = 2.0 * (Ioa - 0.5 * (Iob + Ioc)) / 3.0;;
-      // inst->Io_beta_k[2] = sqrt(3.0) * (Ioc - Iob) / 3.0;
+      inst->Vbeta_2 = inst->Vbeta_1;
+      inst->Vbeta_1   = Vbm;
    }
 
    if((inst->t_prev <= inst->trg_q_f)&&(t >= inst->trg_q_f)){
       inst->xcntr++;
 
       // current sample 3 at 3/4 period
-      // inst->Valph_k[3] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
-      // inst->Vbeta_k[3]  = sqrt(3.0) * (Vc - Vb) / 3.0;
+      inst->Ialph_k[3] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
+      inst->Ibeta_k[3] = sqrt(3.0) * (Ic - Ib) / 3.0;
 
-      // inst->Ialph_k[3] = 2.0 * (Ia - 0.5 * (Ib + Ic)) / 3.0;;
-      // inst->Ibeta_k[3] = sqrt(3.0) * (Ic - Ib) / 3.0;
-
-      // inst->Io_alph_k[3] = 2.0 * (Ioa - 0.5 * (Iob + Ioc)) / 3.0;;
-      // inst->Io_beta_k[3] = sqrt(3.0) * (Ioc - Iob) / 3.0;
+      inst->Valph_k[3] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
+      inst->Vbeta_k[3]  = sqrt(3.0) * (Vc - Vb) / 3.0;
    }
 
    Valph = inst->Var;
@@ -307,7 +313,7 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
    Id = inst->dq.IerrLd;
    Iq = inst->dq.IerrLq;
 
-   Vdcf  = inst->dq.Vdcf;
+   Vdcf = inst->dq.Vdcf;
    theta = inst->theta;
    inst->t_prev = t;
 }
