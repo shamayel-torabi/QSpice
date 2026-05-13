@@ -5,6 +5,18 @@
 #include <math.h>
 #include "lowpass_filter.h"
 
+typedef struct {
+    double Vdc;
+    double P;
+    double Q;
+    double Vod;
+    double Voq;
+    double ILd;
+    double ILq;
+    double Iod;
+    double Ioq;
+} dq_type;
+
 class DQController {
 public:
     DQController();
@@ -18,28 +30,33 @@ public:
         cos_wt = cos(W * ts);
 
         vdc_lp.init(Tf, ts);
+        ids_lp.init(10 * Tf, ts);
+        iqs_lp.init(10 * Tf, ts);
+
         reset();
     }
 
-    void operator()(double p, double q, double id, double iq,double iod, double ioq, double vod, double voq, double vdc){
-        double vsq = vod * vod + voq * voq;
+    void operator()(dq_type* in){
+        double vm = in->Vod * in->Vod + in->Voq * in->Voq;
+        double Iods = (in->P * in->Vod - in->Q * in->Voq) / vm;
+        double Ioqs = (in->P * in->Voq + in->Q * in->Vod) / vm;
 
-        ieLd = (vod * p - voq * q) / vsq - iod;
-        ieLq = (voq * p + vod * q) / vsq - ioq;
+        double IerrLds = Iods + ILd - in->Iod - in->ILd;
+        double IerrLqs = Ioqs + ILq - in->Ioq - in->ILq;
 
-        double vcd = D_CC(ieLd, id, vod, voq);
-        double vcq = Q_CC(ieLq, iq, vod, voq);
+        double vcd = D_CC(IerrLd, in->ILd, in->Vod, in->Voq);
+        double vcq = Q_CC(IerrLq, in->ILq, in->Vod, in->Voq);
 
-        vcd -= wl * iLq;
-        vcq += wl * iLd;
+        vcd -= wl * ILq;
+        vcq += wl * ILd;
 
-        Vd = (1.0 + cos_wt) * vcd / 2.0 - sin_wt * vcq / 2.0;
-        Vq = (1.0 + cos_wt) * vcq / 2.0 + sin_wt * vcd / 2.0;
+        Vid = (1.0 + cos_wt) * vcd / 2.0 - sin_wt * vcq / 2.0;
+        Viq = (1.0 + cos_wt) * vcq / 2.0 + sin_wt * vcd / 2.0;
 
-        Vdcf = max(vdc_lp(vdc / 2.0), 1.0);
+        Vdcf = max(vdc_lp(in->Vdc / 2.0), 1.0);
 
-        Vd /= Vdcf;
-        Vq /= Vdcf;
+        Vid /= Vdcf;
+        Viq /= Vdcf;
 
         // double U_ref = hypotf(Vd, Vq);
         // double theta = atan2(Vq, Vd);
@@ -66,15 +83,15 @@ public:
         err_output_q_1 = 0.0;
     }
 
-    double Vd;
-    double Vq;
+    double Vid;
+    double Viq;
     double Vdcf;
     
-    double iLd;
-    double iLq;
+    double ILd;
+    double ILq;
 
-    double ieLd;
-    double ieLq;
+    double IerrLd;
+    double IerrLq;
 private:
     double Ki;
     double Kp;
@@ -97,17 +114,19 @@ private:
     double err_output_q_1;
     
     LowPassFilter vdc_lp;
+    LowPassFilter ids_lp;
+    LowPassFilter iqs_lp;
 
     double D_CC(double ierr_d, double ild_1, double vod_1, double voq_1){
         //double err_output_d = err_output_d_1 + Ki * ierr_d;
         double err_output_d = err_output_d_1 + Ki * Ts * 0.5 * (ierr_d + ierr_d_1);
 
-        iLd = ild_1 * cos_wt + (vcd_1 - vod_1) * sin_wt / wl - voq_1 * (1.0 - cos_wt) / wl;
-        double vcd = err_output_d - Kp * iLd; 
+        ILd = ild_1 * cos_wt + (vcd_1 - vod_1) * sin_wt / wl - voq_1 * (1.0 - cos_wt) / wl;
+        double vcd = err_output_d - Kp * ILd; 
 
         err_output_d_1 = err_output_d;
         ierr_d_1 = ierr_d;
-        iLd_1 = iLd;
+        iLd_1 = ILd;
         vcd_1 = vcd;
 
         return vcd;
@@ -117,12 +136,12 @@ private:
         //double err_output_q = err_output_q_1 + Ki * ierr_q;
         double err_output_q = err_output_q_1 + Ki * Ts * 0.5 * (ierr_q + ierr_q_1);
 
-        iLq = ilq_1 * cos_wt + (vcq_1 - voq_1) * sin_wt / wl - vod_1 * (-1.0 + cos_wt) / wl;
-        double vcq = err_output_q - Kp * iLq;
+        ILq = ilq_1 * cos_wt + (vcq_1 - voq_1) * sin_wt / wl - vod_1 * (-1.0 + cos_wt) / wl;
+        double vcq = err_output_q - Kp * ILq;
         
         err_output_q_1 = err_output_q;
         ierr_q_1 = ierr_q;
-        iLq_1 = iLq;
+        iLq_1 = ILq;
         vcq_1 = vcq;
 
         return vcq;

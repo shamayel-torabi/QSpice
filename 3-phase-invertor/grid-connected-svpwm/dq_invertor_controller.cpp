@@ -87,17 +87,35 @@ struct sDQ_INVERTOR_CONTROLLER
    double Valph_k[4];
    double Vbeta_k[4];
 
+   double Valph_1;
+   double Valph_2;
+
+   double Vbeta_1;
+   double Vbeta_2;
+
    double Ialph;
    double Ibeta;
 
    double Ialph_k[4];
    double Ibeta_k[4];
 
+   double Ialph_1;
+   double Ialph_2;
+
+   double Ibeta_1;
+   double Ibeta_2;
+
    double Io_alph;
    double Io_beta;
 
    double Io_alph_k[4];
    double Io_beta_k[4];
+
+   double Io_alph_1;
+   double Io_alph_2;
+
+   double Io_beta_1;
+   double Io_beta_2;
 
    double Var;
    double Vbr;
@@ -124,8 +142,8 @@ void dq_controller(struct sDQ_INVERTOR_CONTROLLER *inst){
    double Io_beta = inst->Io_beta;
    
    double theta = inst->dsogi(Valph, Vbeta);   
-   double sinValue = sin(theta);
-   double cosValue = cos(theta);
+   double sinValue = sin(inst->theta);
+   double cosValue = cos(inst->theta);
       
    in.Vdc = inst->Vdc;
    in.P = inst->P;
@@ -211,7 +229,43 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
       inst->Vdc = Vdc;
       inst->P = p;
       inst->Q = q;
-      
+
+      double Vam = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
+      double Vbm = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
+
+      inst->Valph = (Vam + 2.0 * inst->Valph_1 + inst->Valph_2) / 4.0;
+      inst->Vbeta = (Vbm + 2.0 * inst->Vbeta_1 + inst->Vbeta_2) / 4.0;
+
+      inst->Valph_2 = inst->Valph_1;
+      inst->Valph_1 = Vam;
+
+      inst->Vbeta_2 = inst->Vbeta_1;
+      inst->Vbeta_1   = Vbm;
+
+      double Iam = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
+      double Ibm = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
+
+      inst->Ialph = (Iam + 2.0 * inst->Ialph_1 + inst->Ialph_2) / 4.0;
+      inst->Ibeta = (Ibm + 2.0 * inst->Ibeta_1 + inst->Ibeta_2) / 4.0;
+
+      inst->Ialph_2 = inst->Ialph_1;
+      inst->Ialph_1   = Iam;
+
+      inst->Ibeta_2 = inst->Ibeta_1;
+      inst->Ibeta_1 = Ibm;
+
+      double Ioam = (inst->Io_alph_k[0] + inst->Io_alph_k[1] + inst->Io_alph_k[2] + inst->Io_alph_k[3]) / 4.0;
+      double Iobm = (inst->Io_beta_k[0] + inst->Io_beta_k[1] + inst->Io_beta_k[2] + inst->Io_beta_k[3]) / 4.0;
+
+      inst->Io_alph = (Ioam + 2.0 * inst->Io_alph_1 + inst->Io_alph_2) / 4.0;
+      inst->Io_beta = (Iobm + 2.0 * inst->Io_beta_1 + inst->Io_beta_2) / 4.0;
+
+      inst->Io_alph_2 = inst->Io_alph_1;
+      inst->Io_alph_1   = Ioam;
+
+      inst->Io_beta_2 = inst->Io_beta_1;
+      inst->Io_beta_1   = Iobm;
+
       inst->Valph_k[0] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta_k[0]  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
@@ -220,18 +274,9 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
 
       inst->Io_alph_k[0] = 2.0 * (Ioa - 0.5 * (Iob + Ioc)) / 3.0;;
       inst->Io_beta_k[0] = sqrt(3.0) * (Ioc - Iob) / 3.0;
-
-      inst->Valph = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
-      inst->Vbeta = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
-
-      inst->Ialph = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
-      inst->Ibeta = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
-
-      inst->Io_alph = (inst->Io_alph_k[0] + inst->Io_alph_k[1] + inst->Io_alph_k[2] + inst->Io_alph_k[3]) / 4.0;
-      inst->Io_beta = (inst->Io_beta_k[0] + inst->Io_beta_k[1] + inst->Io_beta_k[2] + inst->Io_beta_k[3]) / 4.0;
-
-      dq_controller(inst);
       
+      dq_controller(inst);
+
       double quarter = inst->xpeak / 2.0;
       inst->trg_m   = inst->trg_e + inst->xpeak / inst->mcu_clk;
       inst->trg_q_r = inst->trg_e + quarter / inst->mcu_clk;
@@ -255,7 +300,43 @@ extern "C" __declspec(dllexport) void dq_invertor_controller(struct sDQ_INVERTOR
 
    if((inst->t_prev <= inst->trg_m)&&(t >= inst->trg_m)){
       inst->xcntr++;
-    
+
+      double Vam = (inst->Valph_k[0] + inst->Valph_k[1] + inst->Valph_k[2] + inst->Valph_k[3]) / 4.0;
+      double Vbm = (inst->Vbeta_k[0] + inst->Vbeta_k[1] + inst->Vbeta_k[2] + inst->Vbeta_k[3]) / 4.0;
+
+      inst->Valph = (Vam + 2.0 * inst->Valph_1 + inst->Valph_2) / 4.0;
+      inst->Vbeta = (Vbm + 2.0 * inst->Vbeta_1 + inst->Vbeta_2) / 4.0;
+
+      inst->Valph_2 = inst->Valph_1;
+      inst->Valph_1 = Vam;
+
+      inst->Vbeta_2 = inst->Vbeta_1;
+      inst->Vbeta_1   = Vbm;
+
+      double Iam = (inst->Ialph_k[0] + inst->Ialph_k[1] + inst->Ialph_k[2] + inst->Ialph_k[3]) / 4.0;
+      double Ibm = (inst->Ibeta_k[0] + inst->Ibeta_k[1] + inst->Ibeta_k[2] + inst->Ibeta_k[3]) / 4.0;
+
+      inst->Ialph = (Iam + 2.0 * inst->Ialph_1 + inst->Ialph_2) / 4.0;
+      inst->Ibeta = (Ibm + 2.0 * inst->Ibeta_1 + inst->Ibeta_2) / 4.0;
+
+      inst->Ialph_2 = inst->Ialph_1;
+      inst->Ialph_1   = Iam;
+
+      inst->Ibeta_2 = inst->Ibeta_1;
+      inst->Ibeta_1 = Ibm;
+
+      double Ioam = (inst->Io_alph_k[0] + inst->Io_alph_k[1] + inst->Io_alph_k[2] + inst->Io_alph_k[3]) / 4.0;
+      double Iobm = (inst->Io_beta_k[0] + inst->Io_beta_k[1] + inst->Io_beta_k[2] + inst->Io_beta_k[3]) / 4.0;
+
+      inst->Io_alph = (Ioam + 2.0 * inst->Io_alph_1 + inst->Io_alph_2) / 4.0;
+      inst->Io_beta = (Iobm + 2.0 * inst->Io_beta_1 + inst->Io_beta_2) / 4.0;
+
+      inst->Io_alph_2 = inst->Io_alph_1;
+      inst->Io_alph_1   = Ioam;
+
+      inst->Io_beta_2 = inst->Io_beta_1;
+      inst->Io_beta_1   = Iobm;
+     
       inst->Valph_k[2] = 2.0 * (Va - 0.5 * (Vb + Vc)) / 3.0;
       inst->Vbeta_k[2]  = sqrt(3.0) * (Vc - Vb) / 3.0;
 
